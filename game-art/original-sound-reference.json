@@ -1,0 +1,30 @@
+{
+  "source": "https://ai-passport.folotoy.cn/plays/778/",
+  "firmware_sha256": "613c671d7df28c0b9461edb4736a820810214ec347663b3d15635da10f6961c5",
+  "status": "public binary obtained; source code not provided",
+  "audio_format": "s16le mono 16000 Hz; verified original audio init uses 16000,16,1",
+  "effects": [
+    {
+      "name": "charge",
+      "offset": 0,
+      "samples": 35176,
+      "pcm_sha256": "df3d77c1c8cf4c0dfb9296d4f4f0184da6f2836971a96b626403056788b3919d",
+      "rate": 16000
+    },
+    {
+      "name": "jump",
+      "offset": 70352,
+      "samples": 16055,
+      "pcm_sha256": "cf2ed91d7d0c62c0235d764781f569a3ed1cbcac99a07121d596687ac3d9edac",
+      "rate": 16000
+    },
+    {
+      "name": "center",
+      "offset": 102462,
+      "samples": 25701,
+      "pcm_sha256": "3ae7d27929a6592e01afa949fd298a90495a0f22706abbd6c144e8477289dcf3",
+      "rate": 16000
+    }
+  ],
+  "usage": "Project owner requested public release on 2026-10-15; community audio is not declared MIT. See THIRD_PARTY_NOTICES.md."
+}

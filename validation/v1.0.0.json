@@ -1,0 +1,139 @@
+{
+  "release": "v1.0.0",
+  "date": "2026-10-15",
+  "app_sha256": "b18f915d0295181609b225b475511e1e8a5e60d950b2390fc33191e7c0278d40",
+  "current_image": {
+    "app_only_flash_and_preserved_regions": "PASS",
+    "speech_launch": {
+      "recognized_launches": [
+        "radio",
+        "muyu",
+        "jump",
+        "dice"
+      ],
+      "captured_page_transitions": {
+        "radio": [
+          5
+        ],
+        "muyu": [],
+        "jump": [
+          7
+        ],
+        "dice": [
+          3
+        ]
+      },
+      "user_confirmation": "dice, muyu and radio all opened",
+      "muyu_capture_limit": "Page 4 line was not captured during logger restart; actual opening confirmed by user"
+    },
+    "home_return": "PASS: page 0, MQTT connected, audio tasks allocated, state idle",
+    "abort_count_observed": 0,
+    "conversation_turns_observed": 1,
+    "extra_buffered_input_rerun": "NOT RUN: user disconnected USB after successful speech tests"
+  },
+  "previous_voice_memory_fix": {
+    "app_sha256": "ed9523812382aba706c063c1db7e916458eec78254f45419a1277ae7498f5bb2",
+    "conversation_turns": 7,
+    "observed_seconds": 256.69,
+    "active_conversation_seconds": 107.69,
+    "abort_count": 0,
+    "heap_min_sampled": 17800,
+    "heap_low_water_bytes": 12708,
+    "largest_block_min_sampled": 7680,
+    "opus_stack_min_free": 4716,
+    "encoded_frames": 587,
+    "played_frames": 1037
+  },
+  "previous_navigation": {
+    "app_sha256": "abfb61d23df54f1b8981979314c4211252de315373bcf0e67dbd7acc20389eec",
+    "pass": true,
+    "case_count": 26,
+    "connected_pc_exit_tested": true
+  },
+  "previous_game_frame_measurement": {
+    "runs": 12,
+    "timings": [
+      {
+        "phase": 0,
+        "frames": 257,
+        "intervals": 244,
+        "mean_us": 28935,
+        "max_us": 32396,
+        "over_50ms": 0,
+        "mean_draw_us": 3826,
+        "max_draw_us": 18017
+      },
+      {
+        "phase": 1,
+        "frames": 120,
+        "intervals": 114,
+        "mean_us": 20014,
+        "max_us": 22994,
+        "over_50ms": 0,
+        "mean_draw_us": 3987,
+        "max_draw_us": 6573
+      },
+      {
+        "phase": 2,
+        "frames": 257,
+        "intervals": 244,
+        "mean_us": 20022,
+        "max_us": 25512,
+        "over_50ms": 0,
+        "mean_draw_us": 4472,
+        "max_draw_us": 6385
+      },
+      {
+        "phase": 3,
+        "frames": 166,
+        "intervals": 155,
+        "mean_us": 35489,
+        "max_us": 55400,
+        "over_50ms": 13,
+        "mean_draw_us": 7349,
+        "max_draw_us": 13535
+      },
+      {
+        "phase": 4,
+        "frames": 15,
+        "intervals": 14,
+        "mean_us": 19735,
+        "max_us": 20847,
+        "over_50ms": 0,
+        "mean_draw_us": 5543,
+        "max_draw_us": 6114
+      },
+      {
+        "phase": 5,
+        "frames": 42,
+        "intervals": 41,
+        "mean_us": 19946,
+        "max_us": 22104,
+        "over_50ms": 0,
+        "mean_draw_us": 6030,
+        "max_draw_us": 8494
+      }
+    ],
+    "scope": "Earlier game build; original measurement did not record an app SHA256"
+  },
+  "unchanged_game_sources": {
+    "main/boards/folotoy/ai-passport-nabo/nabo_jump_model.c": "f3131cf8fb09c5f235694d7030b91301054c2489c0d97be0195796d39cc080fa",
+    "main/boards/folotoy/ai-passport-nabo/nabo_jump_rig.c": "4b65edb1e4d155b2b96d565fc85930dda12a01d12c14dedce59f400881ad683b",
+    "main/boards/folotoy/ai-passport-nabo/nabo_jump_sound.c": "4e1d22e04432be876e5b337bcbfa998e9408ce8ef4eb6b1af24b0d5527000bef",
+    "main/boards/folotoy/ai-passport-nabo/jump_sounds.bin": "5f8613c19ec519ec38fed11e6ac8599a6dc3553a33136c3a79f89f1617f0cbde"
+  },
+  "host_tests_on_exported_source": {
+    "upstream": 82,
+    "game": 18,
+    "ported_apps": 111,
+    "speech_parser_cases": 99,
+    "release_package_guards": 7,
+    "stereo_extrema_and_tail_sizes": 9,
+    "radio_rates": 7,
+    "radio_consecutive_frames": 112,
+    "fragmented_heap_allocator": "PASS"
+  },
+  "first_install_new_blank_device_rerun": "NOT RUN: installation payload uses the earlier verified boot/table/assets plus final app",
+  "generic_release_flasher": "Package/negative guards tested; install/upgrade command not rerun on physical hardware at publication",
+  "private_data_included": false
+}

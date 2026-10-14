@@ -1,0 +1,30 @@
+{
+  "source": "local edge/fall tones plus a quieter faded community charge; original three clips remain byte-exact in the prefix",
+  "format": "s16le mono 16000 Hz",
+  "bytes": 243096,
+  "effects": [
+    {
+      "name": "edge",
+      "kind": 3,
+      "offset_bytes": 153864,
+      "frames": 1440,
+      "sha256": "956662ee9f3a2b40dd095c8c6ebd87bedb57925adcff478b8b3c02220b21672b"
+    },
+    {
+      "name": "fall",
+      "kind": 4,
+      "offset_bytes": 156744,
+      "frames": 8000,
+      "sha256": "c3c2bedf2dc6061d263781f4d3cfc09e61d8a84b586c5df9c53eb0207a6d5662"
+    },
+    {
+      "name": "soft_charge",
+      "kind": 5,
+      "offset_bytes": 172744,
+      "frames": 35176,
+      "gain": 0.65,
+      "fade_ms": 15,
+      "sha256": "3dd6a3be976648df29f9c456e78670a66916599752fabdcf950828f2895273cc"
+    }
+  ]
+}

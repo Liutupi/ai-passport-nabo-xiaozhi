@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-15",
+  "clean_source_build": {
+    "pass": true,
+    "sdk": "ESP-IDF 6.0.2",
+    "chip": "esp32c3",
+    "app_bytes": 3901088,
+    "app_sha256": "6cdb5148d2819688d3ff4effb792eb4f91d21ac9e08560d57ed62a49d0e64a85",
+    "windows_response_files": true
+  },
+  "released_image": {
+    "app_sha256": "b18f915d0295181609b225b475511e1e8a5e60d950b2390fc33191e7c0278d40",
+    "uses_original_hardware_accepted_binary": true
+  },
+  "host_regressions": "PASS; 82 upstream, 18 game, 111 ported, 99 parser, PCM/radio/allocator, 7 package guards",
+  "github_host_ci": "PENDING first push",
+  "private_data_scan": {
+    "pass": true,
+    "staged_files": 1863,
+    "staged_bytes": 12542282,
+    "validated_production_files": 92
+  }
+}

@@ -1,0 +1,557 @@
+{
+  "format": "nabo-palette-packbits-v2",
+  "canvas": [
+    224,
+    224
+  ],
+  "framing": "bust",
+  "normalized_viewport": [
+    120,
+    44,
+    392,
+    316
+  ],
+  "background": "black",
+  "palette_format": "RGB565_LE",
+  "packets": {
+    "0..127": "token+1 literal palette indices",
+    "128..255": "(token&127)+2 repetitions of the following palette index"
+  },
+  "binary": "nabo_rgb565_rle.bin",
+  "frames": [
+    {
+      "name": "angry_01.png",
+      "palette_offset": 0,
+      "row_offsets_offset": 512,
+      "rle_offset": 1412,
+      "rle_bytes": 28851,
+      "total_bytes": 30263,
+      "source_file": "nabo_angry.png",
+      "source_crop_box": [
+        131.6425339366516,
+        17.372727272727275,
+        962.4117647058823,
+        847.5909090909091
+      ],
+      "source_sha256": "d2f2a11c212e246746c548762978316c438360f616bccb61276c584176634545"
+    },
+    {
+      "name": "happy_01.png",
+      "palette_offset": 30263,
+      "row_offsets_offset": 30775,
+      "rle_offset": 31675,
+      "rle_bytes": 25767,
+      "total_bytes": 27179,
+      "source_file": "ae5907ff-6890-45ed-ab1c-9272369dd79f.png",
+      "source_crop_box": [
+        245.0547263681592,
+        -0.8909090909090907,
+        990.6865671641791,
+        744.6363636363636
+      ],
+      "source_sha256": "b091a8a145f61121684ad4a116def33fd1fd7999ce19887c5e1f73c326bf4ced"
+    },
+    {
+      "name": "idle_01.png",
+      "palette_offset": 57442,
+      "row_offsets_offset": 57954,
+      "rle_offset": 58854,
+      "rle_bytes": 25231,
+      "total_bytes": 26643,
+      "source_file": "c610679b-5b6d-493a-8075-98a2cd335d65.png",
+      "source_crop_box": [
+        256.7,
+        12.92727272727273,
+        984.3000000000001,
+        739.9090909090909
+      ],
+      "source_sha256": "eecbd9b9ad2a928d9bcf1058e1e248a006b121ca96dc814a16a924a8c091d243"
+    },
+    {
+      "name": "idle_02.png",
+      "palette_offset": 84085,
+      "row_offsets_offset": 84597,
+      "rle_offset": 85497,
+      "rle_bytes": 25061,
+      "total_bytes": 26473,
+      "source_file": "8a855f99-7bad-4029-9a36-aeb76c061c70.png",
+      "source_crop_box": [
+        247.0515463917526,
+        2.163636363636364,
+        992.9484536082474,
+        746.4545454545455
+      ],
+      "source_sha256": "e76329d230a5d546f2956d51b20ee2314aca4efcc58df7cc50b0cee215f51c53"
+    },
+    {
+      "name": "idle_03.png",
+      "palette_offset": 110558,
+      "row_offsets_offset": 111070,
+      "rle_offset": 111970,
+      "rle_bytes": 30971,
+      "total_bytes": 32383,
+      "source_file": "dcc2616c-329f-49db-9f76-dfb099443eef.png",
+      "source_crop_box": [
+        258.77133105802045,
+        -6.454545454545453,
+        994.9351535836178,
+        729.1818181818181
+      ],
+      "source_sha256": "10713bf210bd512c261c16e58c8028bfdc94b2f6aa5076e3ea2997507e1a4ae4"
+    },
+    {
+      "name": "idle_04.png",
+      "palette_offset": 142941,
+      "row_offsets_offset": 143453,
+      "rle_offset": 144353,
+      "rle_bytes": 25226,
+      "total_bytes": 26638,
+      "source_file": "a3a7ef5e-85ad-4d01-a30d-db3d738f5d2a.png",
+      "source_crop_box": [
+        120.79896907216495,
+        20.02727272727273,
+        938.201030927835,
+        835.4090909090909
+      ],
+      "source_sha256": "26b97078a17428dd9f2d1b8e5b8b5f78a79cf239a47239d607894664c7e7b180"
+    },
+    {
+      "name": "idle_05.png",
+      "palette_offset": 169579,
+      "row_offsets_offset": 170091,
+      "rle_offset": 170991,
+      "rle_bytes": 27982,
+      "total_bytes": 29394,
+      "source_file": "cd70ca26-8444-47f2-ba2e-b3c8c4fae6c5.png",
+      "source_crop_box": [
+        260.04716981132077,
+        18.145454545454545,
+        984.9528301886793,
+        740.1818181818181
+      ],
+      "source_sha256": "e9fb66a922218f0cbcf30669ba0d52179aa39efff72e5e4dcc2b9db8b3e483b2"
+    },
+    {
+      "name": "listen_01.png",
+      "palette_offset": 198973,
+      "row_offsets_offset": 199485,
+      "rle_offset": 200385,
+      "rle_bytes": 25109,
+      "total_bytes": 26521,
+      "source_file": "4b71d168-022c-44e9-a23d-75413fa8947f.png",
+      "source_crop_box": [
+        248.5,
+        -8.772209567198175,
+        996.5,
+        739.6924829157175
+      ],
+      "source_sha256": "94ea3621b97e3480c5a3d41d901c8f00399f0644de56d5351946c9c476908864"
+    },
+    {
+      "name": "listen_02.png",
+      "palette_offset": 225494,
+      "row_offsets_offset": 226006,
+      "rle_offset": 226906,
+      "rle_bytes": 24742,
+      "total_bytes": 26154,
+      "source_file": "d041caa8-2748-486a-85cd-1f249599dc91.png",
+      "source_crop_box": [
+        259.83248730964465,
+        12.92727272727273,
+        988.8477157360406,
+        739.9090909090909
+      ],
+      "source_sha256": "95743be6b7af12a56f59d1682104310e2ba2aa25df79072a2e096976cd053a08"
+    },
+    {
+      "name": "sad_01.png",
+      "palette_offset": 251648,
+      "row_offsets_offset": 252160,
+      "rle_offset": 253060,
+      "rle_bytes": 28788,
+      "total_bytes": 30200,
+      "source_file": "42da26fc-8c0d-4f10-98cc-24073de05008.png",
+      "source_crop_box": [
+        121.70232558139534,
+        -11.690909090909095,
+        979.4511627906977,
+        842.6363636363636
+      ],
+      "source_sha256": "3d2dd2feaf6ecdb0a9885d032036b53e5344285e66646bcad89f33ff424c00f2"
+    },
+    {
+      "name": "sleep_01.png",
+      "palette_offset": 281848,
+      "row_offsets_offset": 282360,
+      "rle_offset": 283260,
+      "rle_bytes": 25068,
+      "total_bytes": 26480,
+      "source_file": "c9eda4e5-c1cd-4b6b-b838-160ce009b608.png",
+      "source_crop_box": [
+        255.34,
+        11.872727272727275,
+        985.66,
+        740.090909090909
+      ],
+      "source_sha256": "c91e182eaa79760c4dce7cc59dcb8995be2696be0dd0a57543a02acc6dd31590"
+    },
+    {
+      "name": "speak_01.png",
+      "palette_offset": 308328,
+      "row_offsets_offset": 308840,
+      "rle_offset": 309740,
+      "rle_bytes": 24877,
+      "total_bytes": 26289,
+      "source_file": "d4feeae0-3739-46db-ab5f-71be44796900.png",
+      "source_crop_box": [
+        121.69633507853402,
+        14.481818181818177,
+        953.3612565445027,
+        842.2272727272727
+      ],
+      "source_sha256": "e8c79cef1ea8873a186c0ffa7b67971fd1d0f010d0e046d300474079d01b593d"
+    },
+    {
+      "name": "speak_02.png",
+      "palette_offset": 334617,
+      "row_offsets_offset": 335129,
+      "rle_offset": 336029,
+      "rle_bytes": 24975,
+      "total_bytes": 26387,
+      "source_file": "e2c29607-ba04-4ab0-9a9f-9bbe8cd3a278.png",
+      "source_crop_box": [
+        123.33333333333333,
+        15.536363636363632,
+        950.6666666666667,
+        842.0454545454546
+      ],
+      "source_sha256": "99e668a7cc996d0d09034e156d651249212b0ad745f9d37d8b81ba4034f19474"
+    },
+    {
+      "name": "speak_03.png",
+      "palette_offset": 361004,
+      "row_offsets_offset": 361516,
+      "rle_offset": 362416,
+      "rle_bytes": 25091,
+      "total_bytes": 26503,
+      "source_file": "b8777f8a-2374-49a7-b7e1-abcf00ce0c8d.png",
+      "source_crop_box": [
+        121.61224489795917,
+        19.02727272727273,
+        940.3877551020408,
+        834.4090909090909
+      ],
+      "source_sha256": "3ddb42cf8de6c35fbd20e37e9924bb7fb025938234221ad1836fc281d7ac2f4c"
+    },
+    {
+      "name": "speak_04.png",
+      "palette_offset": 387507,
+      "row_offsets_offset": 388019,
+      "rle_offset": 388919,
+      "rle_bytes": 25187,
+      "total_bytes": 26599,
+      "source_file": "56a844a7-f86b-4431-be40-dceff51d8ec5.png",
+      "source_crop_box": [
+        257.75879396984925,
+        13.954545454545453,
+        984.9145728643216,
+        740.3181818181819
+      ],
+      "source_sha256": "1cb6868b0056b24c10b088d8fa03d7dddbabd7771e23cf9def08115b3808d585"
+    },
+    {
+      "name": "speak_05.png",
+      "palette_offset": 414106,
+      "row_offsets_offset": 414618,
+      "rle_offset": 415518,
+      "rle_bytes": 25226,
+      "total_bytes": 26638,
+      "source_file": "aef4be8b-f4e9-4c39-be05-ac9fd7bf6b35.png",
+      "source_crop_box": [
+        257.3969849246231,
+        13.954545454545453,
+        987.286432160804,
+        740.3181818181819
+      ],
+      "source_sha256": "071c4b38ea4c22e1ae77133c0efa76a5d44eb68850a91182a4259512bdbab45e"
+    },
+    {
+      "name": "speak_06.png",
+      "palette_offset": 440744,
+      "row_offsets_offset": 441256,
+      "rle_offset": 442156,
+      "rle_bytes": 26352,
+      "total_bytes": 27764,
+      "source_file": "039a28d5-d0ee-40ab-8a1b-d6ce57276d9e.png",
+      "source_crop_box": [
+        246.64734299516908,
+        -11.381818181818183,
+        1006.1449275362319,
+        745.2727272727273
+      ],
+      "source_sha256": "e5a92fa76c68f4ffed7b0eaae4d7e720e090374ef3e8c4bbccf69ea352f9ecbb"
+    },
+    {
+      "name": "think_02.png",
+      "palette_offset": 468508,
+      "row_offsets_offset": 469020,
+      "rle_offset": 469920,
+      "rle_bytes": 25287,
+      "total_bytes": 26699,
+      "source_file": "2f4381a9-96b7-41fd-a8a5-e2a648ff89db.png",
+      "source_crop_box": [
+        257.7,
+        14.954545454545453,
+        985.3000000000001,
+        741.3181818181819
+      ],
+      "source_sha256": "1ffe21f26284fe7bda2c10a2035d88757d598ee2a80543af42e9fc66eb90d57e"
+    },
+    {
+      "name": "tired_01.png",
+      "palette_offset": 495207,
+      "row_offsets_offset": 495719,
+      "rle_offset": 496619,
+      "rle_bytes": 25148,
+      "total_bytes": 26560,
+      "source_file": "90411e8e-024e-40bf-8fc9-f977fc8837e5.png",
+      "source_crop_box": [
+        257.3969849246231,
+        12.899999999999999,
+        987.286432160804,
+        740.5
+      ],
+      "source_sha256": "5dd4e18190e7c0b0767aa40df4d5e8a6577a0400dbf927b194542076950fe3da"
+    },
+    {
+      "name": "wake_01.png",
+      "palette_offset": 521767,
+      "row_offsets_offset": 522279,
+      "rle_offset": 523179,
+      "rle_bytes": 25051,
+      "total_bytes": 26463,
+      "source_file": "wake_01.png",
+      "source_crop_box": [
+        120,
+        44,
+        392,
+        316
+      ],
+      "source_sha256": "3dfa4d244212f9770a16d11a7eceac652c421a739250ae10ddcbab7906e0e587"
+    },
+    {
+      "name": "wake_02.png",
+      "palette_offset": 548230,
+      "row_offsets_offset": 548742,
+      "rle_offset": 549642,
+      "rle_bytes": 24936,
+      "total_bytes": 26348,
+      "source_file": "wake_02.png",
+      "source_crop_box": [
+        120,
+        44,
+        392,
+        316
+      ],
+      "source_sha256": "7eeecaf22e9ba3e3eef86f352800625f375a673fac0d6f429eac8e81518df32b"
+    },
+    {
+      "name": "wake_03.png",
+      "palette_offset": 574578,
+      "row_offsets_offset": 575090,
+      "rle_offset": 575990,
+      "rle_bytes": 25061,
+      "total_bytes": 26473,
+      "source_file": "wake_03.png",
+      "source_crop_box": [
+        120,
+        44,
+        392,
+        316
+      ],
+      "source_sha256": "e9a4c64755f683737f90e08119d18b2907513dbdbb641caaa2484872d0d68ecd"
+    },
+    {
+      "name": "wake_04.png",
+      "palette_offset": 601051,
+      "row_offsets_offset": 601563,
+      "rle_offset": 602463,
+      "rle_bytes": 24973,
+      "total_bytes": 26385,
+      "source_file": "wake_04.png",
+      "source_crop_box": [
+        120,
+        44,
+        392,
+        316
+      ],
+      "source_sha256": "ccc0912ecd3eec3362cd9a4fe879472f25b8d15dc877292500576e2e2f2ab04c"
+    },
+    {
+      "name": "wave_pose_01.png",
+      "palette_offset": 627436,
+      "row_offsets_offset": 627948,
+      "rle_offset": 628848,
+      "rle_bytes": 31722,
+      "total_bytes": 33134,
+      "source_file": "815f07e2-598e-43e2-ba8c-67556764e523.png",
+      "source_crop_box": [
+        255.16666666666666,
+        2.6000000000000014,
+        991.8333333333333,
+        737.0
+      ],
+      "source_sha256": "1c6fd13ecb39dac3ccb4d01c98836ce8e883ccb449d0f075008446cb3dab26eb"
+    },
+    {
+      "name": "wave_pose_02.png",
+      "palette_offset": 660570,
+      "row_offsets_offset": 661082,
+      "rle_offset": 661982,
+      "rle_bytes": 24856,
+      "total_bytes": 26268,
+      "source_file": "844c117b-2cb1-4d3e-862d-0ac45289d1f6.png",
+      "source_crop_box": [
+        121.7434554973822,
+        14.727272727272727,
+        946.2879581151833,
+        836.909090909091
+      ],
+      "source_sha256": "14f65d585f082e3cbc2ea6bb1a86f40c568a54c81ed169430f73f8f41f148ffd"
+    },
+    {
+      "name": "wave_pose_03.png",
+      "palette_offset": 686838,
+      "row_offsets_offset": 687350,
+      "rle_offset": 688250,
+      "rle_bytes": 25016,
+      "total_bytes": 26428,
+      "source_file": "c77478a1-3d34-4a6f-b086-25e1c529af1d.png",
+      "source_crop_box": [
+        122.125,
+        15.536363636363632,
+        950.875,
+        842.0454545454546
+      ],
+      "source_sha256": "bb219ec4194681235f45133b99e7c948159094cafb7edb970af1a563eb69e141"
+    }
+  ],
+  "clips": {
+    "idle": {
+      "files": [
+        "idle_01.png"
+      ],
+      "fps": 1,
+      "loop": false
+    },
+    "listen": {
+      "files": [
+        "listen_01.png",
+        "listen_02.png"
+      ],
+      "fps": 1,
+      "loop": false
+    },
+    "think": {
+      "files": [
+        "think_02.png"
+      ],
+      "fps": 1,
+      "loop": false
+    },
+    "speak": {
+      "files": [
+        "speak_01.png",
+        "speak_04.png",
+        "speak_02.png",
+        "speak_05.png"
+      ],
+      "fps": 8,
+      "loop": true
+    },
+    "happy": {
+      "files": [
+        "happy_01.png"
+      ],
+      "fps": 2,
+      "loop": true
+    },
+    "wave": {
+      "files": [
+        "wave_pose_01.png",
+        "wave_pose_02.png",
+        "wave_pose_03.png"
+      ],
+      "fps": 6,
+      "loop": false
+    },
+    "wake": {
+      "files": [
+        "wake_01.png",
+        "wake_02.png",
+        "wake_03.png",
+        "wake_04.png"
+      ],
+      "fps": 4,
+      "loop": false
+    },
+    "tired": {
+      "files": [
+        "tired_01.png"
+      ],
+      "fps": 1,
+      "loop": false
+    },
+    "sleep": {
+      "files": [
+        "sleep_01.png"
+      ],
+      "fps": 1,
+      "loop": false
+    },
+    "sad": {
+      "files": [
+        "sad_01.png"
+      ],
+      "fps": 1,
+      "loop": false
+    },
+    "angry": {
+      "files": [
+        "angry_01.png"
+      ],
+      "fps": 1,
+      "loop": false
+    }
+  },
+  "excluded": {
+    "think_01.png": "Standalone mouth art; not a complete character frame.",
+    "happy_02.png": "Standalone mouth art; not a complete character frame.",
+    "wave_01.png": "Lying/seated-to-standing sequence; deferred to keep a stable bust viewport.",
+    "wave_02.png": "Lying/seated-to-standing sequence; deferred to keep a stable bust viewport.",
+    "wave_03.png": "Lying/seated-to-standing sequence; deferred to keep a stable bust viewport.",
+    "wave_04.png": "Lying/seated-to-standing sequence; deferred to keep a stable bust viewport."
+  },
+  "deferred": {
+    "blink": "Named bust blink art is hand-waving and stays excluded. Idle blinks composite only eye regions from the existing tired_01 and sleep_01 frames."
+  },
+  "mode_map": {
+    "boot": "wave",
+    "idle": "idle",
+    "listening": "listen",
+    "thinking": "think",
+    "speaking": "speak",
+    "error": "tired",
+    "off": "sleep",
+    "pet_reaction": "happy"
+  },
+  "checks": {
+    "row_roundtrip": "PASS",
+    "frame_count": 26,
+    "packed_bytes": 713266,
+    "decoder_row_scratch_bytes": 0,
+    "raw_rgb565_bytes": 2609152
+  },
+  "source_root": "nabo_assets",
+  "sha256": "34475f298938efa03a642d782384130023b9ff36cdee0edf1222415e4201b4df"
+}
