@@ -13,7 +13,13 @@
     "uses_original_hardware_accepted_binary": true
   },
   "host_regressions": "PASS; 82 upstream, 18 game, 111 ported, 99 parser, PCM/radio/allocator, 7 package guards",
-  "github_host_ci": "PENDING first push",
+  "github_host_ci": {
+    "pass": true,
+    "run_id": 38599563727,
+    "url": "https://github.com/Liutupi/ai-passport-nabo-xiaozhi/actions/runs/38599563727",
+    "tested_code_commit": "6e12256231326b6c1b524b090213cd40e923d486",
+    "platform": "ubuntu-24.04 / Python 3.11"
+  },
   "private_data_scan": {
     "pass": true,
     "staged_files": 1863,
