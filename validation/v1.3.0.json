@@ -23,5 +23,10 @@
   "regression_found_and_fixed": "BLE: v1.2 and the first v1.3 build could leave XiaoZhi suspended after the keyboard page when the NimBLE host never started (nimble_port_stop -> BLE_HS_EALREADY retried forever; NABO hidden). Fixed in 0788eac with smaller BLE pools and an EALREADY exit path.",
   "firmware_source_commit": "0788eac",
   "user_acceptance": "user confirmed after device checks (\"可以了\") and asked to publish",
-  "base_images_reused_from": "v1.0.0 (bootloader, partition table, assets byte-identical to the device)"
+  "base_images_reused_from": "v1.0.0 (bootloader, partition table, assets byte-identical to the device)",
+  "github_release": {
+    "url": "https://github.com/Liutupi/ai-passport-nabo-xiaozhi/releases/tag/v1.3.0",
+    "tag_commit": "80aa2d01815c0a2efb1adf97d33a9ec5e8e3618a",
+    "download_check": "PASS: public assets re-downloaded; xiaozhi.bin, zip and manifest match SHA256SUMS.txt; zip (92 files) contains the same app and no private/log files"
+  }
 }
