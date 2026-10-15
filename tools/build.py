@@ -13,12 +13,14 @@ build = source / 'build-release'
 defaults = root / 'configs/release-v1.3.0.sdkconfig'
 # idf.py only applies defaults to keys missing from an existing sdkconfig, so
 # a build directory configured from an older release file must start over.
+import hashlib
 marker = build / 'release-defaults.txt'
-if (build / 'sdkconfig').exists() and (not marker.exists() or marker.read_text().strip() != defaults.name):
+stamp = defaults.name + ' ' + hashlib.sha256(defaults.read_bytes()).hexdigest()
+if (build / 'sdkconfig').exists() and (not marker.exists() or marker.read_text().strip() != stamp):
     (build / 'sdkconfig').unlink()
     print('Release defaults changed; regenerating', build / 'sdkconfig')
 build.mkdir(exist_ok=True)
-marker.write_text(defaults.name + '\n')
+marker.write_text(stamp + '\n')
 command = [sys.executable, str(Path(idf) / 'tools/idf.py'), '-B', str(build),
            '-D', 'SDKCONFIG=' + str(build / 'sdkconfig'),
            '-D', 'SDKCONFIG_DEFAULTS=' + str(defaults),

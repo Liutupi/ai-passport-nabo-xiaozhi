@@ -1,0 +1,25 @@
+{
+  "release": "v1.3.0 candidate (not a GitHub Release)",
+  "date": "2026-10-15",
+  "source_commit": "0788eac",
+  "idf": "ESP-IDF v6.0.2 (Windows)",
+  "app_bytes": 4005824,
+  "app_sha256": "068a543dfbd57e912fbcbd7c7fcb827afafca68230df494f68bb4c336e111e47",
+  "app_partition_free_bytes": 122944,
+  "flash": "PASS: upgrade mode, MAC checked, full backup verified, only xiaozhi.bin written, written and preserved regions verified",
+  "device_checks": {
+    "keys_pages_lcd": "PASS: top list, scroll remote, mouse/scroll group, Typeless group, connection page captured; no missing glyphs",
+    "remote_double_up_stays": "PASS: group stays 4 after MUSE_MENU_LEFT",
+    "ble_start_stop_without_host": "PASS x2: advertising rc=0, keyboard stopped, XiaoZhi resumed (local=0)",
+    "jump_ramp": "PASS: 16 consecutive scripted perfect landings, gap reached 95 px (> old 94 max)",
+    "home_screen_after_tests": "PASS: NABO idle frame captured"
+  },
+  "not_yet_verified": [
+    "paired Windows/Mac: wheel scroll, click, back, media keys",
+    "re-pair prompt with a host that cached the v1.2 report map",
+    "physical-button hold-to-repeat in the remote",
+    "jump one-person items on screen (needs ~20+ real landings)",
+    "voice conversation after keyboard session"
+  ],
+  "regression_found_and_fixed": "BLE: v1.2 and the first v1.3 build could leave XiaoZhi suspended after the keyboard page when the NimBLE host never started (nimble_port_stop -> BLE_HS_EALREADY retried forever; NABO hidden). Fixed in 0788eac with smaller BLE pools and an EALREADY exit path."
+}
