@@ -36,7 +36,7 @@ class KeysModel(unittest.TestCase):
 
     def test_all_actions_are_bounded_valid_and_named(self):
         for os in range(2):
-            for k in range(25):
+            for k in range(26):
                 p=self.packet(os,k)
                 self.assertIn(p.report,(1,2,3))
                 self.assertEqual(p.length,{1:8,2:2,3:4}[p.report])
@@ -63,7 +63,7 @@ class KeysModel(unittest.TestCase):
 
     def test_every_value_label_fits_the_column(self):
         for os in range(2):
-            for k in range(25):
+            for k in range(26):
                 label=ctypes.create_string_buffer(32)
                 packet=self.packet(os,k)
                 self.lib.nabo_keys_chord(ctypes.byref(packet),os,label,len(label))
@@ -108,24 +108,37 @@ class KeysModel(unittest.TestCase):
         seen=[]
         for g in range(4):
             seen.extend(self.lib.nabo_keys_group_item(g,r) for r in range(self.lib.nabo_keys_group_count(g)))
-        self.assertEqual(seen,list(range(25)))
-        self.assertEqual(self.lib.nabo_keys_group_item(4,0),25)
-        self.assertEqual(self.lib.nabo_keys_group_item(-1,0),25)
+        self.assertEqual(sorted(seen),list(range(26)))
+        self.assertEqual(seen[:6],[0,1,25,2,3,4])
+        self.assertEqual(self.lib.nabo_keys_group_item(4,0),26)
+        self.assertEqual(self.lib.nabo_keys_group_item(-1,0),26)
         self.assertEqual(self.lib.nabo_keys_group_name(4),b'')
 
     def test_v1_overrides_map_to_surviving_actions_only(self):
         expected={0:22,1:23,2:24,3:5,5:6,8:7,9:8,11:9,16:10,19:13,26:12}
         for v1 in range(-1,35):
-            self.assertEqual(self.lib.nabo_keys_from_v1(v1),expected.get(v1,25))
+            self.assertEqual(self.lib.nabo_keys_from_v1(v1),expected.get(v1,26))
 
     def test_invalid_inputs_and_custom_key_validation(self):
         p=Packet()
-        for os,k in ((-1,0),(2,0),(0,-1),(0,25)):
+        for os,k in ((-1,0),(2,0),(0,-1),(0,26)):
             self.assertFalse(self.lib.nabo_keys_packet(os,k,ctypes.byref(p)))
         for encoded in (0,1,2,3,0x74,0xffff):
             self.assertFalse(self.lib.nabo_keys_override_packet(encoded,ctypes.byref(p)))
         self.assertTrue(self.lib.nabo_keys_override_packet(0x4000,ctypes.byref(p)))
         self.assertEqual(list(p.data[:3]),[0x40,0,0])
+
+    def test_reading_right_arrow_has_no_modifier_and_keeps_legacy_ids(self):
+        for os in range(2):
+            packet=self.packet(os,25)
+            self.assertEqual((packet.report,packet.length),(1,8))
+            self.assertEqual(list(packet.data),[0,0,0x4f,0,0,0,0,0])
+            self.lib.nabo_keys_reverse_scroll(ctypes.byref(packet))
+            self.assertEqual(list(packet.data),[0,0,0x4f,0,0,0,0,0])
+            label=ctypes.create_string_buffer(16)
+            self.lib.nabo_keys_chord(ctypes.byref(packet),os,label,16)
+            self.assertEqual(label.value,b'Right')
+        self.assertEqual(self.lib.nabo_key_name(25),'向右翻页'.encode())
 
 
 PLATFORM=r'''
@@ -221,8 +234,8 @@ RUNTIME=r'''
 static key_request_t queue_items[4];static unsigned count;
 static int kicks,terminations,notifies,fail_notify,fail_task,security,flipped;
 static int battery_pct,appearance;
-static bool auth=true,nv_have,nv_have_v1,nv_have_v2;static uint8_t nv_os,nv_rev;
-static uint16_t nv_maps[2][NABO_KEY_COUNT];static uint16_t nv_v1[2][NABO_KEYS_V1_COUNT];
+static bool auth=true,nv_have,nv_have_v1,nv_have_v2,nv_have_v3;static uint8_t nv_os,nv_rev;
+static uint16_t nv_maps[2][NABO_KEY_COUNT];static uint16_t nv_v2[2][NABO_KEYS_V2_COUNT];static uint16_t nv_v1[2][NABO_KEYS_V1_COUNT];
 static nabo_key_packet_t sent[12];
 QueueHandle_t xQueueCreateStatic(unsigned n,unsigned size,uint8_t *buf,StaticQueue_t *ctrl) {
  (void)buf;(void)ctrl;assert(n==4 && size==sizeof(key_request_t));return queue_items;
@@ -258,11 +271,12 @@ int nvs_open(const char *ns,unsigned mode,nvs_handle_t *h){assert(!strcmp(ns,"na
 int nvs_get_u8(nvs_handle_t h,const char *k,uint8_t *out){(void)h;*out=!strcmp(k,"os") ? nv_os : nv_rev;return 0;}
 int nvs_get_blob(nvs_handle_t h,const char *k,void *out,size_t *len){
  (void)h;
- if(!strcmp(k,"maps_v2")){if(!nv_have_v2)return -1;assert(*len==sizeof(nv_maps));memcpy(out,nv_maps,*len);return 0;}
+ if(!strcmp(k,"maps_v3")){if(!nv_have_v3)return -1;assert(*len==sizeof(nv_maps));memcpy(out,nv_maps,*len);return 0;}
+ if(!strcmp(k,"maps_v2")){if(!nv_have_v2)return -1;assert(*len==sizeof(nv_v2));memcpy(out,nv_v2,*len);return 0;}
  assert(!strcmp(k,"maps_v1"));if(!nv_have_v1)return -1;assert(*len==sizeof(nv_v1));memcpy(out,nv_v1,*len);return 0;
 }
 int nvs_set_u8(nvs_handle_t h,const char *k,uint8_t n){(void)h;if(!strcmp(k,"os"))nv_os=n;else{assert(!strcmp(k,"scroll_rev"));nv_rev=n;}return 0;}
-int nvs_set_blob(nvs_handle_t h,const char *k,const void *in,size_t len){(void)h;assert(!strcmp(k,"maps_v2") && len==sizeof(nv_maps));memcpy(nv_maps,in,len);nv_have_v2=true;return 0;}
+int nvs_set_blob(nvs_handle_t h,const char *k,const void *in,size_t len){(void)h;assert(!strcmp(k,"maps_v3") && len==sizeof(nv_maps));memcpy(nv_maps,in,len);nv_have_v3=true;return 0;}
 int nvs_commit(nvs_handle_t h){(void)h;nv_have=true;return 0;}
 void nvs_close(nvs_handle_t h){(void)h;}
 void muse_ble_status(muse_ble_status_t *b){b->passkey=0;}
@@ -276,7 +290,7 @@ int nabo_pc_battery_level(void){return battery_pct;}
 void fixture_init(void){
  atomic_store(&s_wanted,false);atomic_store(&s_running,false);atomic_store(&s_loaded,false);
  atomic_store(&s_stop,false);atomic_store(&s_os,0);atomic_store(&s_revision,0);atomic_store(&s_result,0);
- kicks=terminations=notifies=fail_notify=fail_task=security=flipped=0;nv_have=nv_have_v1=nv_have_v2=false;nv_rev=0;nv_os=0;atomic_store(&s_scroll_reverse,false);auth=true;count=0;battery_pct=73;
+ kicks=terminations=notifies=fail_notify=fail_task=security=flipped=0;nv_have=nv_have_v1=nv_have_v2=nv_have_v3=false;nv_rev=0;nv_os=0;atomic_store(&s_scroll_reverse,false);auth=true;count=0;battery_pct=73;
  nabo_keys_prepare();atomic_store(&s_os,NABO_KEYS_MAC);nabo_keys_open();nabo_keys_register();nabo_keys_start();
  struct ble_gap_event e={.type=BLE_GAP_EVENT_CONNECT,.connect={0,7}};nabo_keys_gap(&e);
  e.type=BLE_GAP_EVENT_ENC_CHANGE;e.enc_change.conn_handle=7;nabo_keys_gap(&e);
@@ -299,7 +313,7 @@ int fixture_case(int which){
  if(which==9){atomic_store(&s_running,false);fail_task=1;nabo_keys_start();assert(!nabo_keys_wanted() && !atomic_load(&s_running) && kicks>=2);}
  if(which==10){struct os_mbuf om={0};struct ble_gatt_access_ctxt ctx={.op=BLE_GATT_ACCESS_OP_READ_CHR,.om=&om};assert(!access_value(7,0,&ctx,(void *)ACCESS_MAP));assert(om.len==sizeof(report_map));for(struct ble_gatt_chr_def *c=services[0].characteristics;c->uuid;++c)if(c->val_handle)assert((c->flags&READ_ENC)==READ_ENC);uint8_t bad=2;om.len=0;os_mbuf_append(&om,&bad,1);ctx.op=BLE_GATT_ACCESS_OP_WRITE_CHR;assert(access_value(7,0,&ctx,(void *)ACCESS_PROTOCOL)!=0);}
  if(which==11){auth=false;struct ble_gap_event e={.type=BLE_GAP_EVENT_ENC_CHANGE,.enc_change={0,7}};nabo_keys_gap(&e);assert(!nabo_keys_send(NABO_KEY_COPY));e.type=BLE_GAP_EVENT_DISCONNECT;nabo_keys_gap(&e);assert(atomic_load(&s_conn)==BLE_HS_CONN_HANDLE_NONE && !atomic_load(&s_subscribed));}
- if(which==12){char *commands[]={"keys.map=1,0,255,255","keys.map=2,0,1,6","keys.map=4294967296,0,1,6","keys.map=0,0,0,18446744073709551616","keys.map=0,0,1,6x","keys.map=0,-1,1,6"};for(unsigned i=0;i<sizeof(commands)/sizeof(*commands);++i)nabo_keys_command(commands[i]);assert(atomic_load(&s_maps[1][0])==DEFAULT_MAP && atomic_load(&s_revision)==0);char far[]="keys.map=0,25,1,6";nabo_keys_command(far);assert(atomic_load(&s_revision)==0);}
+ if(which==12){char *commands[]={"keys.map=1,0,255,255","keys.map=2,0,1,6","keys.map=4294967296,0,1,6","keys.map=0,0,0,18446744073709551616","keys.map=0,0,1,6x","keys.map=0,-1,1,6"};for(unsigned i=0;i<sizeof(commands)/sizeof(*commands);++i)nabo_keys_command(commands[i]);assert(atomic_load(&s_maps[1][0])==DEFAULT_MAP && atomic_load(&s_revision)==0);char far[40];snprintf(far,sizeof(far),"keys.map=0,%d,1,6",NABO_KEY_COUNT);nabo_keys_command(far);assert(atomic_load(&s_revision)==0);}
  if(which==13){
   assert(appearance==0x03c1);assert(((const ble_uuid16_t *)services[1].uuid)->value==0x180a);
   assert(((const ble_uuid16_t *)services[2].uuid)->value==0x180f && !services[3].uuid);
@@ -342,7 +356,7 @@ int fixture_case(int which){
   /* Reverse flips the wheel, persists, and survives a reload. */
   atomic_store(&s_os,NABO_KEYS_WINDOWS);nabo_keys_toggle_scroll();assert(nabo_keys_scroll_reversed());
   assert(nabo_keys_send(NABO_KEY_SCROLL_DOWN));sender(NULL);
-  assert(notifies==2 && (int8_t)sent[0].data[3]==3 && nv_rev==1 && nv_have_v2);
+  assert(notifies==2 && (int8_t)sent[0].data[3]==3 && nv_rev==1 && nv_have_v3);
   atomic_store(&s_loaded,false);atomic_store(&s_revision,0);atomic_store(&s_scroll_reverse,false);
   load_preferences();assert(nabo_keys_scroll_reversed());
   nabo_key_packet_t p;nabo_keys_resolve(NABO_KEY_CLICK,&p);assert(p.report==3 && p.data[0]==1 && !p.data[3]);
@@ -356,7 +370,7 @@ int fixture_case(int which){
    if(!(o==1&&k==NABO_KEY_DICTATE)&&!(o==0&&k==NABO_KEY_COPY))assert(atomic_load(&s_maps[o][k])==DEFAULT_MAP);
   assert(nabo_keys_os()==NABO_KEYS_WINDOWS);
   /* A saved v2 table wins over v1. */
-  nv_maps[1][NABO_KEY_DICTATE]=0x4000;for(int o=0;o<2;++o)for(int k=0;k<NABO_KEY_COUNT;++k)if(!(o==1&&k==NABO_KEY_DICTATE))nv_maps[o][k]=0xffff;nv_have_v2=true;
+  nv_v2[1][NABO_KEY_DICTATE]=0x4000;for(int o=0;o<2;++o)for(int k=0;k<NABO_KEYS_V2_COUNT;++k)if(!(o==1&&k==NABO_KEY_DICTATE))nv_v2[o][k]=0xffff;nv_have_v2=true;
   atomic_store(&s_loaded,false);load_preferences();assert(atomic_load(&s_maps[1][NABO_KEY_DICTATE])==0x4000 && atomic_load(&s_maps[0][NABO_KEY_COPY])==DEFAULT_MAP);
  }
  if(which==19){
@@ -372,6 +386,26 @@ int fixture_case(int which){
   struct os_mbuf om={0};struct ble_gatt_access_ctxt ctx={.op=BLE_GATT_ACCESS_OP_READ_CHR,.om=&om};
   assert(!access_value(7,0,&ctx,(void *)ACCESS_MOUSE) && om.len==4);
  }
+ if(which==21){
+  assert(nabo_keys_send(NABO_KEY_RIGHT));sender(NULL);
+  assert(notifies==2 && sent[0].report==1 && sent[0].len==8 && sent[0].data[0]==0 && sent[0].data[2]==0x4f);
+  for(int i=0;i<8;++i)assert(sent[1].data[i]==0);
+ }
+ if(which==22){
+  /* Appended action must not shift the Windows row of an old 2x25 table. */
+  for(int o=0;o<2;++o)for(int k=0;k<NABO_KEYS_V2_COUNT;++k)nv_v2[o][k]=(o?0x0800:0x0100)|((k%26)+4);
+  nv_have=nv_have_v2=true;nv_os=1;nv_rev=1;
+  atomic_store(&s_loaded,false);atomic_store(&s_revision,0);load_preferences();
+  for(int o=0;o<2;++o){
+   for(int k=0;k<NABO_KEYS_V2_COUNT;++k)assert(atomic_load(&s_maps[o][k])==nv_v2[o][k]);
+   assert(atomic_load(&s_maps[o][NABO_KEY_RIGHT])==DEFAULT_MAP);
+  }
+  assert(nabo_keys_os()==NABO_KEYS_WINDOWS && nabo_keys_scroll_reversed());
+  atomic_store(&s_maps[1][NABO_KEY_RIGHT],0x0050);assert(save_preferences() && nv_have_v3);
+  atomic_store(&s_loaded,false);atomic_store(&s_revision,0);load_preferences();
+  assert(atomic_load(&s_maps[1][NABO_KEY_RIGHT])==0x0050);
+  for(int o=0;o<2;++o)for(int k=0;k<NABO_KEYS_V2_COUNT;++k)assert(atomic_load(&s_maps[o][k])==nv_v2[o][k]);
+ }
  return 1;
 }
 '''
@@ -381,7 +415,7 @@ class KeysRuntime(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.tmp=tempfile.TemporaryDirectory(prefix="nabo-keys-runtime-");cls.addClassCleanup(cls.tmp.cleanup)
-        tmp=Path(cls.tmp.name);(tmp/"runtime.c").write_text(RUNTIME)
+        tmp=Path(cls.tmp.name);(tmp/"runtime.c").write_text(RUNTIME,encoding="utf-8")
         headers={"platform.h":PLATFORM}
         for name in ("freertos/FreeRTOS.h","freertos/queue.h","freertos/task.h","host/ble_hs.h","host/ble_gatt.h","services/gap/ble_svc_gap.h","os/os_mbuf.h","nvs.h","esp_log.h","muse_ble.h","muse_link.h","muse_chat.h","muse_state.h","nabo_radio.h","nabo_tts.h"):
             headers[name]='#include "platform.h"\n'
@@ -396,7 +430,7 @@ class KeysRuntime(unittest.TestCase):
             cls.addClassCleanup(_ctypes.FreeLibrary,cls.lib._handle)
 
 
-for i,name in enumerate(("keyboard_keyup","consumer_keyup","bounded_queue_exit","stale_connection","release_failure_disconnect","press_failure","suspend_boot","platform_map_persistence","disconnect_during_press","allocation_failure_restore","gatt_security_map","authentication_disconnect","invalid_usb_map","hogp_services_identity","battery_subscription_security_generation","encrypted_hid_discovery","mouse_wheel_keyup","scroll_reverse_persists","v1_override_migration","stale_pairing_hint","boot_protocol_keyboard_only")):
+for i,name in enumerate(("keyboard_keyup","consumer_keyup","bounded_queue_exit","stale_connection","release_failure_disconnect","press_failure","suspend_boot","platform_map_persistence","disconnect_during_press","allocation_failure_restore","gatt_security_map","authentication_disconnect","invalid_usb_map","hogp_services_identity","battery_subscription_security_generation","encrypted_hid_discovery","mouse_wheel_keyup","scroll_reverse_persists","v1_override_migration","stale_pairing_hint","boot_protocol_keyboard_only","reading_right_keyup","v2_append_migration")):
     def check(self,case=i):self.assertEqual(self.lib.fixture_case(case),1)
     setattr(KeysRuntime,"test_"+name,check)
 

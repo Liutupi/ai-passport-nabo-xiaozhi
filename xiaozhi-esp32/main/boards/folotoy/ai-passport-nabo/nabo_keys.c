@@ -180,50 +180,70 @@ void nabo_keys_toggle_scroll(void)
     atomic_store(&s_scroll_reverse,!atomic_load(&s_scroll_reverse));
     atomic_fetch_add(&s_revision,1);
 }
-static void load_preferences(void)
-{
-    if (s_loaded) return;
+static void load_preferences(void) {
+    if (s_loaded)
+        return;
     uint16_t maps[NABO_KEYS_OS_COUNT][NABO_KEY_COUNT];
-    memset(maps,255,sizeof(maps));
-    nvs_handle_t h; uint8_t os=NABO_KEYS_WINDOWS, reverse=0;
-    if (nvs_open("nabo_keys",NVS_READONLY,&h)==ESP_OK) {
-        size_t len=sizeof(maps);
-        if (nvs_get_blob(h,"maps_v2",maps,&len)!=ESP_OK || len!=sizeof(maps)) {
-            /* v1.0-v1.2 table: keep overrides of the actions that remain. */
-            uint16_t old[NABO_KEYS_OS_COUNT][NABO_KEYS_V1_COUNT];
-            memset(maps,255,sizeof(maps));
-            len=sizeof(old);
-            if (nvs_get_blob(h,"maps_v1",old,&len)==ESP_OK && len==sizeof(old))
-                for (int o=0;o<NABO_KEYS_OS_COUNT;++o) for (int k=0;k<NABO_KEYS_V1_COUNT;++k) {
-                    nabo_key_t now=nabo_keys_from_v1(k);
-                    if (now<NABO_KEY_COUNT) maps[o][now]=old[o][k];
-                }
+    memset(maps, 255, sizeof(maps));
+    nvs_handle_t h;
+    uint8_t os = NABO_KEYS_WINDOWS, reverse = 0;
+    if (nvs_open("nabo_keys", NVS_READONLY, &h) == ESP_OK) {
+        size_t len = sizeof(maps);
+        if (nvs_get_blob(h, "maps_v3", maps, &len) != ESP_OK || len != sizeof(maps)) {
+            uint16_t v2[NABO_KEYS_OS_COUNT][NABO_KEYS_V2_COUNT];
+            memset(maps, 255, sizeof(maps));
+            len = sizeof(v2);
+            if (nvs_get_blob(h, "maps_v2", v2, &len) == ESP_OK && len == sizeof(v2)) {
+                /* Copy each OS row separately: appending an action changes
+                 * the row stride. Leave the new Right Arrow at its default. */
+                for (int o = 0; o < NABO_KEYS_OS_COUNT; ++o)
+                    memcpy(maps[o], v2[o], sizeof(v2[o]));
+            } else {
+                /* v1.0-v1.2 table: keep overrides of the actions that remain. */
+                uint16_t old[NABO_KEYS_OS_COUNT][NABO_KEYS_V1_COUNT];
+                memset(maps, 255, sizeof(maps));
+                len = sizeof(old);
+                if (nvs_get_blob(h, "maps_v1", old, &len) == ESP_OK && len == sizeof(old))
+                    for (int o = 0; o < NABO_KEYS_OS_COUNT; ++o)
+                        for (int k = 0; k < NABO_KEYS_V1_COUNT; ++k) {
+                            nabo_key_t now = nabo_keys_from_v1(k);
+                            if (now < NABO_KEY_COUNT)
+                                maps[o][now] = old[o][k];
+                        }
+            }
         }
-        nvs_get_u8(h,"os",&os);
-        nvs_get_u8(h,"scroll_rev",&reverse);
+        nvs_get_u8(h, "os", &os);
+        nvs_get_u8(h, "scroll_rev", &reverse);
         nvs_close(h);
     }
     nabo_key_packet_t p;
-    for (int o=0;o<NABO_KEYS_OS_COUNT;++o) for(int k=0;k<NABO_KEY_COUNT;++k)
-        atomic_store(&s_maps[o][k],nabo_keys_override_packet(maps[o][k],&p) ? maps[o][k] : DEFAULT_MAP);
+    for (int o = 0; o < NABO_KEYS_OS_COUNT; ++o)
+        for (int k = 0; k < NABO_KEY_COUNT; ++k)
+            atomic_store(&s_maps[o][k],
+                         nabo_keys_override_packet(maps[o][k], &p) ? maps[o][k] : DEFAULT_MAP);
     if (!atomic_load(&s_revision)) {
-        atomic_store(&s_os,os<NABO_KEYS_OS_COUNT ? os : 0);
-        atomic_store(&s_scroll_reverse,reverse==1);
+        atomic_store(&s_os, os < NABO_KEYS_OS_COUNT ? os : 0);
+        atomic_store(&s_scroll_reverse, reverse == 1);
     }
-    s_loaded=true;
+    s_loaded = true;
 }
-static bool save_preferences(void)
-{
+static bool save_preferences(void) {
     uint16_t maps[NABO_KEYS_OS_COUNT][NABO_KEY_COUNT];
-    for (int o=0;o<NABO_KEYS_OS_COUNT;++o) for(int k=0;k<NABO_KEY_COUNT;++k) maps[o][k]=atomic_load(&s_maps[o][k]);
+    for (int o = 0; o < NABO_KEYS_OS_COUNT; ++o)
+        for (int k = 0; k < NABO_KEY_COUNT; ++k)
+            maps[o][k] = atomic_load(&s_maps[o][k]);
     nvs_handle_t h;
-    if (nvs_open("nabo_keys",NVS_READWRITE,&h)!=ESP_OK) return false;
-    esp_err_t e=nvs_set_blob(h,"maps_v2",maps,sizeof(maps));
-    if(e==ESP_OK) e=nvs_set_u8(h,"os",nabo_keys_os());
-    if(e==ESP_OK) e=nvs_set_u8(h,"scroll_rev",atomic_load(&s_scroll_reverse) ? 1 : 0);
-    if(e==ESP_OK) e=nvs_commit(h);
+    if (nvs_open("nabo_keys", NVS_READWRITE, &h) != ESP_OK)
+        return false;
+    esp_err_t e = nvs_set_blob(h, "maps_v3", maps, sizeof(maps));
+    if (e == ESP_OK)
+        e = nvs_set_u8(h, "os", nabo_keys_os());
+    if (e == ESP_OK)
+        e = nvs_set_u8(h, "scroll_rev", atomic_load(&s_scroll_reverse) ? 1 : 0);
+    if (e == ESP_OK)
+        e = nvs_commit(h);
     nvs_close(h);
-    return e==ESP_OK;
+    return e == ESP_OK;
 }
 void nabo_keys_prepare(void)
 {

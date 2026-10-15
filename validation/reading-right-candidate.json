@@ -1,0 +1,20 @@
+{
+  "candidate": "1.3.1-candidate",
+  "app": {
+    "file": "xiaozhi.bin",
+    "offset": "0x10000",
+    "bytes": 4006048,
+    "sha256": "dec70cca8a486491921a828bd3a68353761920d1387c80f0568e9fa1d5178505"
+  },
+  "production_regression_tests": 138,
+  "hid_report_map_unchanged": true,
+  "base_images": "Byte-identical to v1.3.0 published boot/table/assets",
+  "physical_device": "NOT FLASHED: target USB disappeared during identity check; write never started",
+  "wechat_reading": "PENDING physical update and user test",
+  "source_sha256": {
+    "nabo_apps.cc": "9a262b340e0a6e0affda151635216f40cdf1812636853e5818887d9127dd9ec1",
+    "nabo_keys.c": "a86af22e45d7e86ef844d2e20ce84e2af0445b5914af2eb6246eb9d6021058f6",
+    "nabo_keys_model.c": "03474dfc12f39e9361543079077324c6649980e278e4a7ab640db8fca789f907",
+    "nabo_keys_model.h": "18de8382e0808dce36fde7b954877a522d7a449548a92cbd9f255d6feb083875"
+  }
+}

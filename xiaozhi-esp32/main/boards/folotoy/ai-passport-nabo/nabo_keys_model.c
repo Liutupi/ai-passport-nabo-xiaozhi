@@ -2,26 +2,40 @@
 #include <stdio.h>
 #include <string.h>
 
-enum { CTRL=1, SHIFT=2, ALT=4, GUI=8, RIGHT_SHIFT=0x20, RIGHT_ALT=0x40 };
-enum { MOUSE_LEFT=1, MOUSE_RIGHT=2 };
-static const char *const names[] = {
-    "向上滑", "向下滑", "返回上页", "鼠标单击", "鼠标右键",
-    "确认 / 发送", "取消 / 退出", "复制", "粘贴", "撤销",
-    "切换应用", "显示桌面", "区域截图", "锁定电脑",
-    "播放 / 暂停", "快退", "快进", "音量增加", "音量降低", "静音", "上一曲", "下一曲",
-    "听写 / 结束", "语音翻译", "语音提问"
-};
-_Static_assert(sizeof(names)/sizeof(*names)==NABO_KEY_COUNT, "shortcut names");
-static const uint8_t ranges[NABO_KEYS_GROUPS][2]={{0,5},{5,9},{14,8},{22,3}};
-_Static_assert(14+8==NABO_KEY_DICTATE && 22+3==NABO_KEY_COUNT, "group ranges");
-static const char *const groups[NABO_KEYS_GROUPS]={"鼠标与翻页","常用操作","影音播放","Typeless 与 AI"};
-const char *nabo_key_name(nabo_key_t key) { return (unsigned)key<NABO_KEY_COUNT ? names[key] : ""; }
-const char *nabo_keys_group_name(int group) { return (unsigned)group<NABO_KEYS_GROUPS ? groups[group] : ""; }
-int nabo_keys_group_count(int group) { return (unsigned)group<NABO_KEYS_GROUPS ? ranges[group][1] : 0; }
-nabo_key_t nabo_keys_group_item(int group, int row)
-{
-    return (unsigned)group<NABO_KEYS_GROUPS && (unsigned)row<ranges[group][1] ?
-        (nabo_key_t)(ranges[group][0]+row) : NABO_KEY_COUNT;
+enum { CTRL = 1, SHIFT = 2, ALT = 4, GUI = 8, RIGHT_SHIFT = 0x20, RIGHT_ALT = 0x40 };
+enum { MOUSE_LEFT = 1, MOUSE_RIGHT = 2 };
+static const char* const names[] = {
+    "向上滑",      "向下滑",      "返回上页", "鼠标单击", "鼠标右键", "确认 / 发送", "取消 / 退出",
+    "复制",        "粘贴",        "撤销",     "切换应用", "显示桌面", "区域截图",    "锁定电脑",
+    "播放 / 暂停", "快退",        "快进",     "音量增加", "音量降低", "静音",        "上一曲",
+    "下一曲",      "听写 / 结束", "语音翻译", "语音提问", "向右翻页"};
+_Static_assert(sizeof(names) / sizeof(*names) == NABO_KEY_COUNT, "shortcut names");
+static const uint8_t ranges[NABO_KEYS_GROUPS][2] = {{0, 6}, {6, 9}, {15, 8}, {23, 3}};
+static const nabo_key_t menu_order[] = {
+    NABO_KEY_SCROLL_UP, NABO_KEY_SCROLL_DOWN,  NABO_KEY_RIGHT,  NABO_KEY_BACK,
+    NABO_KEY_CLICK,     NABO_KEY_RIGHT_CLICK,  NABO_KEY_ENTER,  NABO_KEY_ESCAPE,
+    NABO_KEY_COPY,      NABO_KEY_PASTE,        NABO_KEY_UNDO,   NABO_KEY_SWITCH,
+    NABO_KEY_DESKTOP,   NABO_KEY_SCREEN_AREA,  NABO_KEY_LOCK,   NABO_KEY_PLAY,
+    NABO_KEY_SEEK_BACK, NABO_KEY_SEEK_FORWARD, NABO_KEY_VOL_UP, NABO_KEY_VOL_DOWN,
+    NABO_KEY_MUTE,      NABO_KEY_PREVIOUS,     NABO_KEY_NEXT,   NABO_KEY_DICTATE,
+    NABO_KEY_TRANSLATE, NABO_KEY_ASK};
+_Static_assert(sizeof(menu_order) / sizeof(*menu_order) == NABO_KEY_COUNT, "group ranges");
+_Static_assert((int)NABO_KEY_RIGHT == (int)NABO_KEYS_V2_COUNT, "preserve v2 map indices");
+static const char* const groups[NABO_KEYS_GROUPS] = {"鼠标与翻页", "常用操作", "影音播放",
+                                                     "Typeless 与 AI"};
+const char* nabo_key_name(nabo_key_t key) {
+    return (unsigned)key < NABO_KEY_COUNT ? names[key] : "";
+}
+const char* nabo_keys_group_name(int group) {
+    return (unsigned)group < NABO_KEYS_GROUPS ? groups[group] : "";
+}
+int nabo_keys_group_count(int group) {
+    return (unsigned)group < NABO_KEYS_GROUPS ? ranges[group][1] : 0;
+}
+nabo_key_t nabo_keys_group_item(int group, int row) {
+    return (unsigned)group < NABO_KEYS_GROUPS && (unsigned)row < ranges[group][1]
+               ? menu_order[ranges[group][0] + row]
+               : NABO_KEY_COUNT;
 }
 nabo_key_t nabo_keys_from_v1(int v1)
 {
@@ -49,55 +63,107 @@ void nabo_keys_reverse_scroll(nabo_key_packet_t *p)
 {
     if (p && p->report==3 && p->data[3]) p->data[3]=(uint8_t)(-(int8_t)p->data[3]);
 }
-bool nabo_keys_packet(nabo_keys_os_t os, nabo_key_t key, nabo_key_packet_t *out)
-{
-    if (!out || (unsigned)os>=NABO_KEYS_OS_COUNT || (unsigned)key>=NABO_KEY_COUNT) return false;
-    bool mac=os==NABO_KEYS_MAC;
-    uint8_t main=mac ? GUI : CTRL;
-    uint8_t mod=0, usage=0;
+bool nabo_keys_packet(nabo_keys_os_t os, nabo_key_t key, nabo_key_packet_t* out) {
+    if (!out || (unsigned)os >= NABO_KEYS_OS_COUNT || (unsigned)key >= NABO_KEY_COUNT)
+        return false;
+    bool mac = os == NABO_KEYS_MAC;
+    uint8_t main = mac ? GUI : CTRL;
+    uint8_t mod = 0, usage = 0;
     switch (key) {
-    /* "Up" means the page moves toward its top, like the physical key.
-     * macOS ships with natural scrolling, which inverts the wheel; the
-     * connection page can reverse either platform. */
-    case NABO_KEY_SCROLL_UP: mouse(out,0,mac ? -NABO_SCROLL_STEP : NABO_SCROLL_STEP); return true;
-    case NABO_KEY_SCROLL_DOWN: mouse(out,0,mac ? NABO_SCROLL_STEP : -NABO_SCROLL_STEP); return true;
-    case NABO_KEY_CLICK: mouse(out,MOUSE_LEFT,0); return true;
-    case NABO_KEY_RIGHT_CLICK: mouse(out,MOUSE_RIGHT,0); return true;
-    /* Browser / Finder / Explorer back: Cmd+[ or Alt+Left. */
-    case NABO_KEY_BACK: mod=mac ? GUI : ALT; usage=mac ? 0x2f : 0x50; break;
-    case NABO_KEY_ENTER: usage=0x28; break;
-    case NABO_KEY_ESCAPE: usage=0x29; break;
-    case NABO_KEY_COPY: mod=main; usage=0x06; break;
-    case NABO_KEY_PASTE: mod=main; usage=0x19; break;
-    case NABO_KEY_UNDO: mod=main; usage=0x1d; break;
-    case NABO_KEY_SWITCH: mod=mac ? GUI : ALT; usage=0x2b; break;
-    /* Win+D; macOS "Show Desktop" defaults to F11. */
-    case NABO_KEY_DESKTOP: mod=mac ? 0 : GUI; usage=mac ? 0x44 : 0x07; break;
-    case NABO_KEY_SCREEN_AREA: mod=GUI|SHIFT; usage=mac ? 0x21 : 0x16; break;
-    case NABO_KEY_LOCK: mod=mac ? CTRL|GUI : GUI; usage=mac ? 0x14 : 0x0f; break;
-    /* Web players (YouTube, Bilibili) seek with the arrow keys. */
-    case NABO_KEY_SEEK_BACK: usage=0x50; break;
-    case NABO_KEY_SEEK_FORWARD: usage=0x4f; break;
-    /* Windows follows the user's Typeless bindings. Keep the Mac defaults
-     * and its existing NVS overrides independent. Right Alt is modifier bit
-     * 6, not left Alt or a normal key-array usage. */
-    case NABO_KEY_DICTATE:
-        if (!mac) mod=RIGHT_ALT; else usage=0x68;
-        break;
-    case NABO_KEY_TRANSLATE:
-        if (!mac) mod=RIGHT_ALT|RIGHT_SHIFT; else usage=0x69;
-        break;
-    case NABO_KEY_ASK:
-        if (!mac) { mod=RIGHT_ALT; usage=0x2c; } else usage=0x6a;
-        break;
-    default: {
-        static const uint16_t consumers[]={0xcd,0,0,0xe9,0xea,0xe2,0xb6,0xb5};
-        uint16_t c=consumers[key-NABO_KEY_PLAY];
-        *out=(nabo_key_packet_t){.report=2,.len=2,.data={(uint8_t)c,(uint8_t)(c>>8)}};
-        return true;
+        /* "Up" means the page moves toward its top, like the physical key.
+         * macOS ships with natural scrolling, which inverts the wheel; the
+         * connection page can reverse either platform. */
+        case NABO_KEY_SCROLL_UP:
+            mouse(out, 0, mac ? -NABO_SCROLL_STEP : NABO_SCROLL_STEP);
+            return true;
+        case NABO_KEY_SCROLL_DOWN:
+            mouse(out, 0, mac ? NABO_SCROLL_STEP : -NABO_SCROLL_STEP);
+            return true;
+        case NABO_KEY_CLICK:
+            mouse(out, MOUSE_LEFT, 0);
+            return true;
+        case NABO_KEY_RIGHT_CLICK:
+            mouse(out, MOUSE_RIGHT, 0);
+            return true;
+        /* Browser / Finder / Explorer back: Cmd+[ or Alt+Left. */
+        case NABO_KEY_BACK:
+            mod = mac ? GUI : ALT;
+            usage = mac ? 0x2f : 0x50;
+            break;
+        case NABO_KEY_ENTER:
+            usage = 0x28;
+            break;
+        case NABO_KEY_ESCAPE:
+            usage = 0x29;
+            break;
+        case NABO_KEY_COPY:
+            mod = main;
+            usage = 0x06;
+            break;
+        case NABO_KEY_PASTE:
+            mod = main;
+            usage = 0x19;
+            break;
+        case NABO_KEY_UNDO:
+            mod = main;
+            usage = 0x1d;
+            break;
+        case NABO_KEY_SWITCH:
+            mod = mac ? GUI : ALT;
+            usage = 0x2b;
+            break;
+        /* Win+D; macOS "Show Desktop" defaults to F11. */
+        case NABO_KEY_DESKTOP:
+            mod = mac ? 0 : GUI;
+            usage = mac ? 0x44 : 0x07;
+            break;
+        case NABO_KEY_SCREEN_AREA:
+            mod = GUI | SHIFT;
+            usage = mac ? 0x21 : 0x16;
+            break;
+        case NABO_KEY_LOCK:
+            mod = mac ? CTRL | GUI : GUI;
+            usage = mac ? 0x14 : 0x0f;
+            break;
+        /* Web players (YouTube, Bilibili) seek with the arrow keys. */
+        case NABO_KEY_SEEK_BACK:
+            usage = 0x50;
+            break;
+        case NABO_KEY_SEEK_FORWARD:
+        case NABO_KEY_RIGHT:
+            usage = 0x4f;
+            break;
+        /* Windows follows the user's Typeless bindings. Keep the Mac defaults
+         * and its existing NVS overrides independent. Right Alt is modifier bit
+         * 6, not left Alt or a normal key-array usage. */
+        case NABO_KEY_DICTATE:
+            if (!mac)
+                mod = RIGHT_ALT;
+            else
+                usage = 0x68;
+            break;
+        case NABO_KEY_TRANSLATE:
+            if (!mac)
+                mod = RIGHT_ALT | RIGHT_SHIFT;
+            else
+                usage = 0x69;
+            break;
+        case NABO_KEY_ASK:
+            if (!mac) {
+                mod = RIGHT_ALT;
+                usage = 0x2c;
+            } else
+                usage = 0x6a;
+            break;
+        default: {
+            static const uint16_t consumers[] = {0xcd, 0, 0, 0xe9, 0xea, 0xe2, 0xb6, 0xb5};
+            uint16_t c = consumers[key - NABO_KEY_PLAY];
+            *out =
+                (nabo_key_packet_t){.report = 2, .len = 2, .data = {(uint8_t)c, (uint8_t)(c >> 8)}};
+            return true;
+        }
     }
-    }
-    keyboard(out,mod,usage);
+    keyboard(out, mod, usage);
     return true;
 }
 bool nabo_keys_override_packet(uint16_t encoded, nabo_key_packet_t *out)

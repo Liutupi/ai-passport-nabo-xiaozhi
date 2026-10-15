@@ -787,8 +787,7 @@ static void change_page(NaboApp next) {
         nabo_muyu_ui_open();
     if (next == NABO_RADIO)
         nabo_radio_menu_open();
-    if (next == NABO_RHYTHM &&
-        !nabo_rhythm_ui_open(app_screen, &nabo_menu_font_16)) {
+    if (next == NABO_RHYTHM && !nabo_rhythm_ui_open(app_screen, &nabo_menu_font_16)) {
         snprintf(notice, sizeof(notice), "内存不足，请退出重试");
         nabo_apps_open(NABO_TOOLS);
     }
@@ -892,7 +891,8 @@ void nabo_apps_tick() {
         static const char* tiny_names[] = {"外带咖啡", "拿铁咖啡", "冰美式",
                                            "迷你电脑", "小音箱",   "黑胶唱片"};
         if (jump_game.next_size == JUMP_SIZE_CUP)
-            snprintf(text, sizeof(text), "下一站 · %s · 一人位", tiny_names[jump_game.next_skin % 6]);
+            snprintf(text, sizeof(text), "下一站 · %s · 一人位",
+                     tiny_names[jump_game.next_skin % 6]);
         else
             snprintf(text, sizeof(text), "下一站 · %s%s",
                      jump_game.next_size == JUMP_SIZE_SMALL ? "迷你" : "",
@@ -985,10 +985,10 @@ void nabo_apps_tick() {
             mv::Rows(groups, kKeyTopRows, key_selected, false);
         } else if (key_group == KG_REMOTE) {
             const char* names[] = {"上键", "下键", "OK", "长按 OK"};
-            const char* actions[] = {"向上滑", "向下滑", "返回上页", "退出遥控"};
+            const char* actions[] = {"向上滑", "向下滑", "向右翻页", "退出遥控"};
             mv::Header("REMOTE", "滑动遥控 · 鼠标滚轮", mv::kYellow, nullptr);
             mv::Info(names, actions, 4);
-            mv::Body("按住上/下键连续滑动\n刷网页、文档、短视频", mv::kRowTop + 4 * mv::kRowPitch + 6);
+            mv::Body("按住上/下键连续滑动\nOK 向右翻页", mv::kRowTop + 4 * mv::kRowPitch + 6);
         } else if (key_group == KG_HELP) {
             char dictate[32], translate[32], ask[32];
             nabo_key_packet_t packet;
@@ -1002,12 +1002,14 @@ void nabo_apps_tick() {
             const char* chords[] = {dictate, translate, ask};
             mv::Header("HELP", "按键说明", mv::kYellow, nullptr);
             mv::Info(names, chords, 3);
-            mv::Body("Typeless 需在电脑上\n设置对应快捷键。\n滑动无反应：删除配对重连", mv::kRowTop + 3 * mv::kRowPitch + 10);
+            mv::Body("Typeless 需在电脑上\n设置对应快捷键。\n滑动无反应：删除配对重连",
+                     mv::kRowTop + 3 * mv::kRowPitch + 10);
             mv::Footer("OK 返回连接设置");
             mv::End();
             return;
         } else if (key_group == KG_CONNECT) {
-            const char* connect[KC_COUNT] = {"返回", "电脑系统", "滚动方向", "重新连接", "按键说明"};
+            const char* connect[KC_COUNT] = {"返回", "电脑系统", "滚动方向", "重新连接",
+                                             "按键说明"};
             mv::Header("KEYS", "连接与设置", mv::kYellow, nullptr);
             mv::Rows(connect, KC_COUNT, key_selected, false);
             mv::Value(KC_OS, nabo_keys_os() == NABO_KEYS_WINDOWS ? "Windows" : "Mac");
@@ -1043,8 +1045,8 @@ void nabo_apps_tick() {
         if (battery.load() >= 0)
             snprintf(power, sizeof(power), "%d%%", battery.load());
         const char* names[] = {"Wi-Fi", "网络", "IP", "电量", "可用内存", "固件"};
-        const char* texts[] = {wifi.IsConnected() ? "已连接" : "未连接", ssid, ip, power, memory,
-                               "NABO 1.2"};
+        const char* texts[] = {
+            wifi.IsConnected() ? "已连接" : "未连接", ssid, ip, power, memory, "NABO 1.2"};
         mv::Header("STATUS", "设备状态", mv::kInk, nullptr);
         mv::Info(names, texts, 6);
         hint = "OK 返回 · 双击上 上一级";
@@ -1062,7 +1064,8 @@ void nabo_apps_tick() {
         mv::Info(names, texts, 1, 204);
         hint = "OK 返回 · 双击上 上一级";
     } else if (page == NABO_WIFI) {
-        snprintf(text, sizeof(text), "1  手机连接热点\n    %s\n\n2  浏览器打开\n    %s\n\n3  配网完成后按 OK 返回",
+        snprintf(text, sizeof(text),
+                 "1  手机连接热点\n    %s\n\n2  浏览器打开\n    %s\n\n3  配网完成后按 OK 返回",
                  WifiManager::GetInstance().GetApSsid().c_str(),
                  WifiManager::GetInstance().GetApWebUrl().c_str());
         mv::Header("WI-FI", "添加网络", mv::kBlue, nullptr);
@@ -1231,8 +1234,10 @@ bool nabo_apps_key(muse_menu_key_t key) {
         }
         if (key_group == KG_REMOTE) {
             // UP/DOWN already scrolled on press-down (see nabo_apps_press).
-            if (key == MUSE_MENU_SELECT)
-                nabo_keys_send(NABO_KEY_BACK);
+            if (key == MUSE_MENU_SELECT) {
+                remote_hold = -1;
+                nabo_keys_send(NABO_KEY_RIGHT);
+            }
             return true;
         }
         int count = key_group == KG_TOP       ? kKeyTopRows
@@ -1358,7 +1363,8 @@ void nabo_apps_register_tools() {
                 app = NABO_TOOLS;
             else
                 return std::unexpected(
-                    "Unknown app. Use jump, rhythm, dice, muyu, radio, computer, settings or tools.");
+                    "Unknown app. Use jump, rhythm, dice, muyu, radio, computer, settings or "
+                    "tools.");
             nabo_apps_open(app, 900);
             return std::string("已安排打开 ") + name + "。程序中使用实体按键；长按上键返回小智。";
         });
