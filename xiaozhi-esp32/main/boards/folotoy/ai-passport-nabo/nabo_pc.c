@@ -148,6 +148,16 @@ void nabo_pc_apply(void) {
         if (!host_stopped) {
             ble_gap_adv_stop();
             int rc = nimble_port_stop();
+            if (rc == BLE_HS_EALREADY) {
+                /* The host never reached "enabled" (e.g. it could not sync
+                 * when memory was short), so there is nothing to stop and
+                 * no stop event will end nimble_port_run(). Remove the
+                 * idle host task ourselves instead of retrying forever,
+                 * which left XiaoZhi suspended. */
+                ESP_LOGW("NABO-PC", "host was not running; removing host task");
+                nimble_port_freertos_deinit();
+                rc = 0;
+            }
             if (rc) {
                 ESP_LOGW("NABO-PC", "stop retry: %d", rc);
                 atomic_store(&requested, true);
