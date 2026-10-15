@@ -25,7 +25,7 @@ sys.path.insert(0, str(ROOT/'tests/legacy'))
 suite = unittest.TestSuite()
 choices = {
     'test_dice': ['DiceRenderActualC', 'DiceUIActualC'],
-    'test_keys': ['KeysModel'],
+    'test_keys': ['KeysModel', 'KeysRuntime'],
     'test_muyu': ['MuyuCoreC'],
     'test_muyu_ui': ['MuyuUIActualC'],
     'test_radio_stream': ['RadioStreamTests'],

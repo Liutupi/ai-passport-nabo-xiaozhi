@@ -10,6 +10,9 @@ void nabo_keys_apply(void);
 bool nabo_keys_wanted(void);
 nabo_keys_os_t nabo_keys_os(void);
 void nabo_keys_toggle_os(void);
+/* Wheel direction; persisted with the platform maps by the sender task. */
+bool nabo_keys_scroll_reversed(void);
+void nabo_keys_toggle_scroll(void);
 bool nabo_keys_send(nabo_key_t key);
 bool nabo_keys_reconnect(void);
 void nabo_keys_resolve(nabo_key_t key, nabo_key_packet_t *out);

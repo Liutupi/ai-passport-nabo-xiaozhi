@@ -26,6 +26,11 @@ bool nabo_apps_is_jump();
 bool nabo_apps_is_fast();
 /* Press-down of the DOWN key; only the rhythm game scores it. */
 void nabo_apps_down_pressed(uint32_t event_ms);
+/* Raw UP/DOWN press-down/up; only the keyboard scroll remote uses them so a
+ * press scrolls at once and a held key repeats. */
+void nabo_apps_press(muse_menu_key_t key, bool pressed, uint32_t event_ms);
+/* Long OK: leaves the scroll remote. Returns false when it did nothing. */
+bool nabo_apps_ok_long();
 void nabo_apps_register_tools();
 void nabo_apps_initialize();
 bool nabo_apps_voice_command(const char* transcript);

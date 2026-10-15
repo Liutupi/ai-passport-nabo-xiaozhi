@@ -59,6 +59,37 @@ static NaboApp page = NABO_HOME;
 static int selected = 1, settings_selected = 1, edit = -1, key_group = -1, key_selected = 0,
            shown_revision = -1;
 static bool initialized = false, engaged = false, restored = true, pc_owned = false;
+// Keyboard page levels: -1 top list, 0..NABO_KEYS_GROUPS-1 action lists, then
+// the direct scroll remote, connection settings and the help page.
+enum { KG_TOP = -1, KG_REMOTE = NABO_KEYS_GROUPS, KG_CONNECT, KG_HELP };
+enum { KC_BACK, KC_OS, KC_SCROLL, KC_RECONNECT, KC_HELP, KC_COUNT };
+constexpr int kKeyTopRows = NABO_KEYS_GROUPS + 3;  // back, remote, groups, connect
+// Remote: a held UP/DOWN repeats the wheel after a short delay.
+static int remote_hold = -1;  // MUSE_MENU_UP / MUSE_MENU_DOWN while held
+static uint32_t remote_next_ms = 0, remote_since_ms = 0;
+// A lost key-up (ADC glitch) must not scroll forever.
+constexpr uint32_t kRemoteRepeatDelayMs = 450, kRemoteRepeatMs = 160, kRemoteMaxHoldMs = 15000;
+static int key_group_top_row(int group) {
+    return group == KG_REMOTE ? 1 : group == KG_CONNECT ? kKeyTopRows - 1 : group + 2;
+}
+static bool keys_remote() {
+    return page == NABO_KEYS && ready.load() && wanted.load() == NABO_KEYS &&
+           key_group == KG_REMOTE;
+}
+static void remote_repeat() {
+    if (remote_hold < 0)
+        return;
+    uint32_t now = esp_timer_get_time() / 1000;
+    if (!keys_remote() || now - remote_since_ms > kRemoteMaxHoldMs) {
+        remote_hold = -1;
+        return;
+    }
+    if (static_cast<int32_t>(now - remote_next_ms) < 0)
+        return;
+    nabo_keys_send(remote_hold == MUSE_MENU_UP ? NABO_KEY_SCROLL_UP : NABO_KEY_SCROLL_DOWN);
+    remote_next_ms = now + kRemoteRepeatMs;
+    last_input = esp_timer_get_time();
+}
 static int64_t last_battery = 0;
 static char notice[96] = "";
 static nabo_jump_t jump_game, jump_frame;
@@ -736,7 +767,8 @@ static void change_page(NaboApp next) {
     }
     page = next;
     edit = -1;
-    key_group = -1;
+    key_group = KG_TOP;
+    remote_hold = -1;
     selected = next == NABO_TOOLS ? 1 : 0;
     key_selected = 0;
     bool menu = !(next == NABO_HOME || next == NABO_DICE || next == NABO_MUYU ||
@@ -817,6 +849,7 @@ void nabo_apps_tick() {
     }
     if (page == NABO_HOME)
         return;
+    remote_repeat();
     if (page == NABO_DICE) {
         nabo_dice_ui_tick();
         return;
@@ -856,7 +889,14 @@ void nabo_apps_tick() {
         show_text(jump_best, text);
         static const char* station_names[] = {"NABO 医院", "NABO 靶心", "床旁书房",
                                               "功德木鱼",  "NABO 播客", "值班咖啡"};
-        snprintf(text, sizeof(text), "下一站 · %s", station_names[jump_game.next_skin]);
+        static const char* tiny_names[] = {"外带咖啡", "拿铁咖啡", "冰美式",
+                                           "迷你电脑", "小音箱",   "黑胶唱片"};
+        if (jump_game.next_size == JUMP_SIZE_CUP)
+            snprintf(text, sizeof(text), "下一站 · %s · 一人位", tiny_names[jump_game.next_skin % 6]);
+        else
+            snprintf(text, sizeof(text), "下一站 · %s%s",
+                     jump_game.next_size == JUMP_SIZE_SMALL ? "迷你" : "",
+                     station_names[jump_game.next_skin]);
         show_text(jump_station, text);
         show_text(jump_hint, jump_game.phase == JUMP_OVER ? "游戏结束  OK：再来一局\n上：返回"
                              : jump_game.phase == JUMP_SCROLLING && jump_game.centered
@@ -936,17 +976,20 @@ void nabo_apps_tick() {
         display_text_menu(text);
         hint = "OK 确定 · 双击上 上一级";
     } else if (page == NABO_KEYS) {
-        if (key_group < 0) {
-            const char* groups[7] = {"返回",
-                                     nabo_keys_group_name(0),
-                                     nabo_keys_group_name(1),
-                                     nabo_keys_group_name(2),
-                                     nabo_keys_group_name(3),
-                                     nabo_keys_group_name(4),
-                                     nabo_keys_group_name(5)};
-            mv::Header("KEYS", "电脑快捷键 · 蓝牙键盘", mv::kYellow, nullptr);
-            mv::Rows(groups, 7, key_selected, false);
-        } else if (key_group == 6) {
+        if (key_group == KG_TOP) {
+            const char* groups[kKeyTopRows] = {"返回", "滑动遥控"};
+            for (int g = 0; g < NABO_KEYS_GROUPS; ++g)
+                groups[g + 2] = nabo_keys_group_name(g);
+            groups[kKeyTopRows - 1] = "连接与设置";
+            mv::Header("KEYS", "电脑快捷键 · 蓝牙", mv::kYellow, nullptr);
+            mv::Rows(groups, kKeyTopRows, key_selected, false);
+        } else if (key_group == KG_REMOTE) {
+            const char* names[] = {"上键", "下键", "OK", "长按 OK"};
+            const char* actions[] = {"向上滑", "向下滑", "返回上页", "退出遥控"};
+            mv::Header("REMOTE", "滑动遥控 · 鼠标滚轮", mv::kYellow, nullptr);
+            mv::Info(names, actions, 4);
+            mv::Body("按住上/下键连续滑动\n刷网页、文档、短视频", mv::kRowTop + 4 * mv::kRowPitch + 6);
+        } else if (key_group == KG_HELP) {
             char dictate[32], translate[32], ask[32];
             nabo_key_packet_t packet;
             nabo_keys_resolve(NABO_KEY_DICTATE, &packet);
@@ -959,19 +1002,20 @@ void nabo_apps_tick() {
             const char* chords[] = {dictate, translate, ask};
             mv::Header("HELP", "按键说明", mv::kYellow, nullptr);
             mv::Info(names, chords, 3);
-            mv::Body("电脑需先安装并设置\n对应软件的快捷键", mv::kRowTop + 3 * mv::kRowPitch + 10);
+            mv::Body("Typeless 需在电脑上\n设置对应快捷键。\n滑动无反应：删除配对重连", mv::kRowTop + 3 * mv::kRowPitch + 10);
             mv::Footer("OK 返回连接设置");
             mv::End();
             return;
-        } else if (key_group == 5) {
-            const char* connect[] = {"返回", "电脑系统", "重新连接", "按键说明"};
-            mv::Header("KEYS", "连接与按键", mv::kYellow, nullptr);
-            mv::Rows(connect, 4, key_selected, false);
-            mv::Value(1, nabo_keys_os() == NABO_KEYS_WINDOWS ? "Windows" : "Mac");
+        } else if (key_group == KG_CONNECT) {
+            const char* connect[KC_COUNT] = {"返回", "电脑系统", "滚动方向", "重新连接", "按键说明"};
+            mv::Header("KEYS", "连接与设置", mv::kYellow, nullptr);
+            mv::Rows(connect, KC_COUNT, key_selected, false);
+            mv::Value(KC_OS, nabo_keys_os() == NABO_KEYS_WINDOWS ? "Windows" : "Mac");
+            mv::Value(KC_SCROLL, nabo_keys_scroll_reversed() ? "反向" : "标准");
         } else {
-            const char* names[9] = {"返回"};
+            const char* names[12] = {"返回"};
             int count = nabo_keys_group_count(key_group);
-            for (int i = 0; i < count; ++i)
+            for (int i = 0; i < count && i < 11; ++i)
                 names[i + 1] = nabo_key_name(nabo_keys_group_item(key_group, i));
             mv::Header("KEYS", nabo_keys_group_name(key_group), mv::kYellow, nullptr);
             mv::Rows(names, count + 1, key_selected, false);
@@ -1054,13 +1098,15 @@ static void return_one_level() {
         return;
     if (settled && current == NABO_RHYTHM && nabo_rhythm_ui_key(MUSE_MENU_LEFT))
         return;
-    if (settled && current == NABO_KEYS && key_group >= 0) {
-        if (key_group == 6) {
-            key_group = 5;
-            key_selected = 3;
+    if (settled && current == NABO_KEYS && key_group == KG_REMOTE)
+        return;  // a quick double UP is two scroll steps here; long OK leaves
+    if (settled && current == NABO_KEYS && key_group != KG_TOP) {
+        if (key_group == KG_HELP) {
+            key_group = KG_CONNECT;
+            key_selected = KC_HELP;
         } else {
-            key_selected = key_group + 1;
-            key_group = -1;
+            key_selected = key_group_top_row(key_group);
+            key_group = KG_TOP;
         }
         return;
     }
@@ -1098,7 +1144,9 @@ bool nabo_apps_key(muse_menu_key_t key) {
         return false;
     }
     if (key == MUSE_MENU_BACK) {
-        nabo_apps_open(NABO_HOME);
+        // Holding UP in the remote repeats the wheel; it must not leave.
+        if (!(page == NABO_KEYS && ready && key_group == KG_REMOTE))
+            nabo_apps_open(NABO_HOME);
         return true;
     }
     if (!ready)
@@ -1174,34 +1222,47 @@ bool nabo_apps_key(muse_menu_key_t key) {
                 setting_command = item;
         }
     } else if (page == NABO_KEYS) {
-        if (key_group == 6) {
+        if (key_group == KG_HELP) {
             if (key == MUSE_MENU_SELECT) {
-                key_group = 5;
-                key_selected = 3;
+                key_group = KG_CONNECT;
+                key_selected = KC_HELP;
             }
             return true;
         }
-        int count = key_group < 0 ? 7 : key_group == 5 ? 4 : nabo_keys_group_count(key_group) + 1;
+        if (key_group == KG_REMOTE) {
+            // UP/DOWN already scrolled on press-down (see nabo_apps_press).
+            if (key == MUSE_MENU_SELECT)
+                nabo_keys_send(NABO_KEY_BACK);
+            return true;
+        }
+        int count = key_group == KG_TOP       ? kKeyTopRows
+                    : key_group == KG_CONNECT ? KC_COUNT
+                                              : nabo_keys_group_count(key_group) + 1;
         if (key == MUSE_MENU_UP || key == MUSE_MENU_DOWN)
             key_selected = (key_selected + (key == MUSE_MENU_UP ? count - 1 : 1)) % count;
         else if (key == MUSE_MENU_SELECT) {
             if (key_selected == 0) {
-                if (key_group < 0)
+                if (key_group == KG_TOP)
                     nabo_apps_open(NABO_TOOLS);
                 else {
-                    key_group = -1;
-                    key_selected = 0;
+                    key_selected = key_group_top_row(key_group);
+                    key_group = KG_TOP;
                 }
-            } else if (key_group < 0) {
-                key_group = key_selected - 1;
+            } else if (key_group == KG_TOP) {
+                key_group = key_selected == 1                 ? KG_REMOTE
+                            : key_selected == kKeyTopRows - 1 ? KG_CONNECT
+                                                              : key_selected - 2;
                 key_selected = 0;
-            } else if (key_group == 5) {
-                if (key_selected == 1)
+                remote_hold = -1;
+            } else if (key_group == KG_CONNECT) {
+                if (key_selected == KC_OS)
                     nabo_keys_toggle_os();
-                else if (key_selected == 2)
+                else if (key_selected == KC_SCROLL)
+                    nabo_keys_toggle_scroll();
+                else if (key_selected == KC_RECONNECT)
                     nabo_keys_reconnect();
                 else
-                    key_group = 6;
+                    key_group = KG_HELP;
             } else
                 nabo_keys_send(nabo_keys_group_item(key_group, key_selected - 1));
         }
@@ -1210,6 +1271,30 @@ bool nabo_apps_key(muse_menu_key_t key) {
             WifiManager::GetInstance().StartStation();
         nabo_apps_open(NABO_SETTINGS);
     }
+    return true;
+}
+void nabo_apps_press(muse_menu_key_t key, bool pressed, uint32_t event_ms) {
+    if (!keys_remote() || (key != MUSE_MENU_UP && key != MUSE_MENU_DOWN))
+        return;
+    last_input = esp_timer_get_time();
+    if (screen_off.load())
+        return;  // the click that follows wakes the screen
+    if (!pressed) {
+        if (remote_hold == key)
+            remote_hold = -1;
+        return;
+    }
+    nabo_keys_send(key == MUSE_MENU_UP ? NABO_KEY_SCROLL_UP : NABO_KEY_SCROLL_DOWN);
+    remote_hold = key;
+    remote_since_ms = event_ms;
+    remote_next_ms = event_ms + kRemoteRepeatDelayMs;
+}
+bool nabo_apps_ok_long() {
+    if (!keys_remote())
+        return false;
+    remote_hold = -1;
+    key_group = KG_TOP;
+    key_selected = key_group_top_row(KG_REMOTE);
     return true;
 }
 void nabo_apps_down_pressed(uint32_t event_ms) {

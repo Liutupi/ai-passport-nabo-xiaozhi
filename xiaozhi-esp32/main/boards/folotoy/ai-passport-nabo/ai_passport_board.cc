@@ -115,6 +115,22 @@ private:
         // Button callbacks run on the button task; schedule all UI/audio
         // work onto the main task so LVGL and codec access stay on one thread.
         auto up = adc_button_[kAdcButtonUp];
+        // Raw edges feed only the keyboard scroll remote (press scrolls at
+        // once, hold repeats); clicks keep their menu meaning elsewhere.
+        up->OnPressDown([this]() {
+            uint32_t event_ms = esp_timer_get_time() / 1000;
+            Application::GetInstance().Schedule([this, event_ms]() {
+                DisplayLockGuard lock(display_);
+                nabo_apps_press(MUSE_MENU_UP, true, event_ms);
+            });
+        });
+        up->OnPressUp([this]() {
+            uint32_t event_ms = esp_timer_get_time() / 1000;
+            Application::GetInstance().Schedule([this, event_ms]() {
+                DisplayLockGuard lock(display_);
+                nabo_apps_press(MUSE_MENU_UP, false, event_ms);
+            });
+        });
         up->OnClick([this]() {
             Application::GetInstance().Schedule([this]() {
                 DisplayLockGuard lock(display_);
@@ -143,6 +159,14 @@ private:
             Application::GetInstance().Schedule([this, event_ms]() {
                 DisplayLockGuard lock(display_);
                 nabo_apps_down_pressed(event_ms);
+                nabo_apps_press(MUSE_MENU_DOWN, true, event_ms);
+            });
+        });
+        down->OnPressUp([this]() {
+            uint32_t event_ms = esp_timer_get_time() / 1000;
+            Application::GetInstance().Schedule([this, event_ms]() {
+                DisplayLockGuard lock(display_);
+                nabo_apps_press(MUSE_MENU_DOWN, false, event_ms);
             });
         });
         down->OnClick([this]() {
@@ -177,6 +201,12 @@ private:
             Application::GetInstance().Schedule([this, event_ms]() {
                 DisplayLockGuard lock(display_);
                 nabo_apps_charge(false, event_ms);
+            });
+        });
+        ok->OnLongPress([this]() {
+            Application::GetInstance().Schedule([this]() {
+                DisplayLockGuard lock(display_);
+                nabo_apps_ok_long();
             });
         });
         ok->OnClick([this]() {

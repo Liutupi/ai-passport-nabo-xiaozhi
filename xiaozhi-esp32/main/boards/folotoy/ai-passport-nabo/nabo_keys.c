@@ -20,7 +20,7 @@
 #include "nabo_radio.h"
 
 #define DEFAULT_MAP UINT16_MAX
-static atomic_bool s_wanted, s_running, s_stop, s_secure, s_suspended;
+static atomic_bool s_wanted, s_running, s_stop, s_secure, s_suspended, s_scroll_reverse;
 static atomic_uint s_conn=ATOMIC_VAR_INIT(BLE_HS_CONN_HANDLE_NONE), s_generation, s_subscribed;
 static atomic_uint s_os, s_revision, s_result;
 static atomic_bool s_protocol=ATOMIC_VAR_INIT(true);
@@ -30,11 +30,13 @@ static QueueHandle_t s_queue;
 static StaticQueue_t s_queue_control;
 typedef struct { uint32_t generation; nabo_key_packet_t packet; } key_request_t;
 static uint8_t s_queue_data[4*sizeof(key_request_t)];
-static uint16_t s_keyboard, s_consumer, s_boot, s_battery;
+static uint16_t s_keyboard, s_consumer, s_mouse, s_boot, s_battery;
 static const char *TAG="nabo.keys";
 
-/* HID keyboard (report 1) and Consumer controls (report 2). Report IDs are
- * carried by each GATT Report Reference, not prepended to notifications. */
+/* HID keyboard (report 1), Consumer controls (report 2) and a wheel mouse
+ * (report 3). Report IDs are carried by each GATT Report Reference, not
+ * prepended to notifications. Hosts cache this map: after it changes, remove
+ * the bonded device on the computer and pair again. */
 static const uint8_t report_map[]={
     0x05,0x01,0x09,0x06,0xa1,0x01,0x85,0x01,
     0x05,0x07,0x19,0xe0,0x29,0xe7,0x15,0x00,0x25,0x01,0x75,0x01,0x95,0x08,0x81,0x02,
@@ -43,7 +45,12 @@ static const uint8_t report_map[]={
     0x05,0x08,0x19,0x01,0x29,0x05,0x75,0x01,0x95,0x05,0x91,0x02,
     0x75,0x03,0x95,0x01,0x91,0x01,0xc0,
     0x05,0x0c,0x09,0x01,0xa1,0x01,0x85,0x02,
-    0x15,0x00,0x26,0xff,0x03,0x19,0x00,0x2a,0xff,0x03,0x75,0x10,0x95,0x01,0x81,0x00,0xc0
+    0x15,0x00,0x26,0xff,0x03,0x19,0x00,0x2a,0xff,0x03,0x75,0x10,0x95,0x01,0x81,0x00,0xc0,
+    0x05,0x01,0x09,0x02,0xa1,0x01,0x85,0x03,0x09,0x01,0xa1,0x00,
+    0x05,0x09,0x19,0x01,0x29,0x05,0x15,0x00,0x25,0x01,0x95,0x05,0x75,0x01,0x81,0x02,
+    0x95,0x01,0x75,0x03,0x81,0x01,
+    0x05,0x01,0x09,0x30,0x09,0x31,0x09,0x38,0x15,0x81,0x25,0x7f,0x75,0x08,0x95,0x03,0x81,0x06,
+    0xc0,0xc0
 };
 static const ble_uuid16_t hid_uuid=BLE_UUID16_INIT(0x1812);
 static const ble_uuid16_t info_uuid=BLE_UUID16_INIT(0x2a4a), map_uuid=BLE_UUID16_INIT(0x2a4b);
@@ -53,7 +60,7 @@ static const ble_uuid16_t boot_out_uuid=BLE_UUID16_INIT(0x2a32), ref_uuid=BLE_UU
 static const ble_uuid16_t dis_uuid=BLE_UUID16_INIT(0x180a), pnp_uuid=BLE_UUID16_INIT(0x2a50);
 static const ble_uuid16_t bas_uuid=BLE_UUID16_INIT(0x180f), battery_uuid=BLE_UUID16_INIT(0x2a19);
 enum { ACCESS_INFO, ACCESS_MAP, ACCESS_CONTROL, ACCESS_PROTOCOL, ACCESS_KEYBOARD, ACCESS_CONSUMER, ACCESS_LEDS,
-       ACCESS_PNP, ACCESS_BATTERY };
+       ACCESS_PNP, ACCESS_BATTERY, ACCESS_MOUSE };
 
 static int battery_level(void)
 {
@@ -73,6 +80,7 @@ static int access_value(uint16_t conn, uint16_t attr, struct ble_gatt_access_ctx
         case ACCESS_PROTOCOL:b[0]=atomic_load(&s_protocol);len=1;break;
         case ACCESS_KEYBOARD:len=8;break;
         case ACCESS_CONSUMER:len=2;break;
+        case ACCESS_MOUSE:len=4;break;
         case ACCESS_LEDS:len=1;break;
         /* Experimental Bluetooth vendor ID, not an assigned USB vendor ID. */
         case ACCESS_PNP:b[0]=1;b[1]=0xff;b[2]=0xff;b[3]=1;b[6]=1;len=7;break;
@@ -119,6 +127,8 @@ static const struct ble_gatt_svc_def services[]={
          .val_handle=&s_keyboard,.descriptors=REFERENCE(1,1)},
         {.uuid=&report_uuid.u,.access_cb=access_value,.arg=(void *)ACCESS_CONSUMER,.flags=READ_ENC|BLE_GATT_CHR_F_NOTIFY,
          .val_handle=&s_consumer,.descriptors=REFERENCE(2,1)},
+        {.uuid=&report_uuid.u,.access_cb=access_value,.arg=(void *)ACCESS_MOUSE,.flags=READ_ENC|BLE_GATT_CHR_F_NOTIFY,
+         .val_handle=&s_mouse,.descriptors=REFERENCE(3,1)},
         {.uuid=&report_uuid.u,.access_cb=access_value,.arg=(void *)ACCESS_LEDS,.flags=READ_ENC|WRITE_ENC|BLE_GATT_CHR_F_WRITE,
          .descriptors=REFERENCE(1,2)},
         {.uuid=&boot_in_uuid.u,.access_cb=access_value,.arg=(void *)ACCESS_KEYBOARD,.flags=READ_ENC|BLE_GATT_CHR_F_NOTIFY,.val_handle=&s_boot},
@@ -162,23 +172,44 @@ void nabo_keys_resolve(nabo_key_t key, nabo_key_packet_t *out)
     if ((unsigned)key>=NABO_KEY_COUNT || !out) return;
     uint16_t encoded=s_loaded ? atomic_load(&s_maps[os][key]) : DEFAULT_MAP;
     if (encoded==DEFAULT_MAP || !nabo_keys_override_packet(encoded,out)) nabo_keys_packet(os,key,out);
+    if (atomic_load(&s_scroll_reverse)) nabo_keys_reverse_scroll(out);
+}
+bool nabo_keys_scroll_reversed(void) { return atomic_load(&s_scroll_reverse); }
+void nabo_keys_toggle_scroll(void)
+{
+    atomic_store(&s_scroll_reverse,!atomic_load(&s_scroll_reverse));
+    atomic_fetch_add(&s_revision,1);
 }
 static void load_preferences(void)
 {
     if (s_loaded) return;
     uint16_t maps[NABO_KEYS_OS_COUNT][NABO_KEY_COUNT];
     memset(maps,255,sizeof(maps));
-    nvs_handle_t h; uint8_t os=NABO_KEYS_WINDOWS;
+    nvs_handle_t h; uint8_t os=NABO_KEYS_WINDOWS, reverse=0;
     if (nvs_open("nabo_keys",NVS_READONLY,&h)==ESP_OK) {
         size_t len=sizeof(maps);
-        if (nvs_get_blob(h,"maps_v1",maps,&len)!=ESP_OK || len!=sizeof(maps)) memset(maps,255,sizeof(maps));
+        if (nvs_get_blob(h,"maps_v2",maps,&len)!=ESP_OK || len!=sizeof(maps)) {
+            /* v1.0-v1.2 table: keep overrides of the actions that remain. */
+            uint16_t old[NABO_KEYS_OS_COUNT][NABO_KEYS_V1_COUNT];
+            memset(maps,255,sizeof(maps));
+            len=sizeof(old);
+            if (nvs_get_blob(h,"maps_v1",old,&len)==ESP_OK && len==sizeof(old))
+                for (int o=0;o<NABO_KEYS_OS_COUNT;++o) for (int k=0;k<NABO_KEYS_V1_COUNT;++k) {
+                    nabo_key_t now=nabo_keys_from_v1(k);
+                    if (now<NABO_KEY_COUNT) maps[o][now]=old[o][k];
+                }
+        }
         nvs_get_u8(h,"os",&os);
+        nvs_get_u8(h,"scroll_rev",&reverse);
         nvs_close(h);
     }
     nabo_key_packet_t p;
     for (int o=0;o<NABO_KEYS_OS_COUNT;++o) for(int k=0;k<NABO_KEY_COUNT;++k)
         atomic_store(&s_maps[o][k],nabo_keys_override_packet(maps[o][k],&p) ? maps[o][k] : DEFAULT_MAP);
-    if (!atomic_load(&s_revision)) atomic_store(&s_os,os<NABO_KEYS_OS_COUNT ? os : 0);
+    if (!atomic_load(&s_revision)) {
+        atomic_store(&s_os,os<NABO_KEYS_OS_COUNT ? os : 0);
+        atomic_store(&s_scroll_reverse,reverse==1);
+    }
     s_loaded=true;
 }
 static bool save_preferences(void)
@@ -187,8 +218,9 @@ static bool save_preferences(void)
     for (int o=0;o<NABO_KEYS_OS_COUNT;++o) for(int k=0;k<NABO_KEY_COUNT;++k) maps[o][k]=atomic_load(&s_maps[o][k]);
     nvs_handle_t h;
     if (nvs_open("nabo_keys",NVS_READWRITE,&h)!=ESP_OK) return false;
-    esp_err_t e=nvs_set_blob(h,"maps_v1",maps,sizeof(maps));
+    esp_err_t e=nvs_set_blob(h,"maps_v2",maps,sizeof(maps));
     if(e==ESP_OK) e=nvs_set_u8(h,"os",nabo_keys_os());
+    if(e==ESP_OK) e=nvs_set_u8(h,"scroll_rev",atomic_load(&s_scroll_reverse) ? 1 : 0);
     if(e==ESP_OK) e=nvs_commit(h);
     nvs_close(h);
     return e==ESP_OK;
@@ -225,19 +257,20 @@ void nabo_keys_gap(struct ble_gap_event *ev)
             d.sec_state.encrypted && d.sec_state.authenticated;
         atomic_store(&s_secure,secure);
     } else if (ev->type==BLE_GAP_EVENT_SUBSCRIBE) {
-        unsigned mask=ev->subscribe.attr_handle==s_keyboard ? 1 :
-            (ev->subscribe.attr_handle==s_consumer ? 2 : (ev->subscribe.attr_handle==s_boot ? 4 :
-             (ev->subscribe.attr_handle==s_battery ? 8 : 0)));
+        uint16_t a=ev->subscribe.attr_handle;
+        unsigned mask=a==s_keyboard ? 1 : a==s_consumer ? 2 : a==s_boot ? 4 : a==s_battery ? 8 :
+            a==s_mouse ? 16 : 0;
         if (ev->subscribe.cur_notify) atomic_fetch_or(&s_subscribed,mask);
         else atomic_fetch_and(&s_subscribed,~mask);
     }
 }
 static bool ready(uint8_t report)
 {
-    unsigned mask=report==2 ? 2 : (atomic_load(&s_protocol) ? 1 : 4);
+    /* Consumer and mouse reports exist only in Report protocol mode. */
+    unsigned mask=report==2 ? 2 : report==3 ? 16 : (atomic_load(&s_protocol) ? 1 : 4);
     return nabo_keys_wanted() && atomic_load(&s_running) && !atomic_load(&s_stop) &&
         atomic_load(&s_secure) && !atomic_load(&s_suspended) && (atomic_load(&s_subscribed)&mask) &&
-        (report!=2 || atomic_load(&s_protocol));
+        (report==1 || atomic_load(&s_protocol));
 }
 static int notify(const nabo_key_packet_t *p, uint32_t generation, uint16_t handle, bool release)
 {
@@ -287,7 +320,8 @@ static void sender(void *arg)
         }
         if (!ready(p.report)) { atomic_store(&s_result,2);continue; }
         uint32_t generation=request.generation;
-        uint16_t handle=p.report==2 ? s_consumer : (atomic_load(&s_protocol) ? s_keyboard : s_boot);
+        uint16_t handle=p.report==2 ? s_consumer : p.report==3 ? s_mouse :
+            (atomic_load(&s_protocol) ? s_keyboard : s_boot);
         int rc=notify(&p,generation,handle,false);
         if (!rc) {
             vTaskDelay(pdMS_TO_TICKS(45));
@@ -330,7 +364,10 @@ bool nabo_keys_send(nabo_key_t key)
     if ((unsigned)key>=NABO_KEY_COUNT) return false;
     nabo_keys_resolve(key,&request.packet);
     bool ok=ready(request.packet.report) && xQueueSend(s_queue,&request,0)==pdTRUE;
-    if (!ok) atomic_store(&s_result,2);
+    /* A computer paired before v1.3 cached the keyboard-only report map:
+     * keys work but the wheel was never subscribed. Say how to fix it. */
+    if (!ok) atomic_store(&s_result,request.packet.report==3 && ready(1) &&
+                         !(atomic_load(&s_subscribed)&16) ? 5 : 2);
     return ok;
 }
 bool nabo_keys_reconnect(void)
@@ -345,6 +382,7 @@ void nabo_keys_status(char *out,size_t cap)
     if (b.passkey) snprintf(out,cap,"配对码：%06u",(unsigned)b.passkey);
     else if (result==3) snprintf(out,cap,"内存不足，请退出重试");
     else if (result==4) snprintf(out,cap,"设置未保存，请重试");
+    else if (result==5) snprintf(out,cap,"滑动需在电脑上删除\n本设备后重新配对");
     else if (!nabo_keys_wanted()) snprintf(out,cap,"正在恢复小智");
     else if (!atomic_load(&s_running)) snprintf(out,cap,"正在切换蓝牙");
     else if (atomic_load(&s_conn)==BLE_HS_CONN_HANDLE_NONE) snprintf(out,cap,"等待电脑连接");

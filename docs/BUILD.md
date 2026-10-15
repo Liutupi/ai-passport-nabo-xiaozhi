@@ -5,7 +5,7 @@
 - Python 3.11+，Git，ESP-IDF **6.0.2**；目标 `esp32c3`。
 - 上游源码提交：`4632dc51f0a5ad26e08542e131e6e48da41e4ff3`。
 - 本版源码：`xiaozhi-esp32/`；组件版本：其中的 `dependencies.lock`。
-- 已刷入镜像的完整配置：`configs/release-v1.0.0.sdkconfig`。
+- 发行配置：`configs/release-v1.3.0.sdkconfig`（v1.0.0–v1.2.0 镜像对应 `configs/release-v1.0.0.sdkconfig`）。v1.3.0 只裁掉不用的部分以腾出应用分区：mbedTLS 仅客户端、关闭 mbedTLS 错误字符串和 `esp_err_to_name` 查表、关闭未使用的 LVGL 控件（arc、arclabel、buttonmatrix、checkbox、dropdown、imagebutton、roller、scale、slider、switch、textarea、table）。`tools/build.py` 发现 `build-release/` 来自旧配置时会自动重新生成 sdkconfig。
 
 先安装/初始化 ESP-IDF。Windows 使用安装器提供的 ESP-IDF PowerShell；Linux/macOS 先执行 IDF 的 `export.sh`。确认 `idf.py --version` 显示 6.0.2，且 `IDF_PATH` 已设置。IDF 5.x 不支持，其他 6.x 版本未替代本版验证环境。
 

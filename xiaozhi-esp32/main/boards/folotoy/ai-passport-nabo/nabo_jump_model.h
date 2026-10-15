@@ -18,7 +18,13 @@ typedef struct {
     uint32_t pending_at;
     int pending_hold;
     bool landed, centered, sound, pending_charge, pending_released;
+    /* Platform size (JUMP_SIZE_*) of the current, next and queued platforms;
+     * steps counts landings and drives the difficulty ramp. */
+    int size, next_size, future_size, steps;
 } nabo_jump_t;
+/* JUMP_SIZE_CUP is the one-person item; its skin picks takeaway coffee, latte,
+ * iced americano, laptop, speaker or vinyl record. */
+enum { JUMP_SIZE_NORMAL, JUMP_SIZE_SMALL, JUMP_SIZE_CUP, JUMP_SIZE_COUNT };
 void nabo_jump_reset(nabo_jump_t* game, uint32_t seed, uint32_t best);
 void nabo_jump_press(nabo_jump_t* game, uint32_t now);
 void nabo_jump_release(nabo_jump_t* game, uint32_t now);
@@ -34,3 +40,8 @@ void nabo_jump_scene_bounds(const nabo_jump_t* game, uint32_t now, int* x0, int*
 bool nabo_jump_camera_moving(const nabo_jump_t* game, uint32_t now);
 bool nabo_jump_charging(const nabo_jump_t* game);
 uint32_t nabo_jump_charge_ms(const nabo_jump_t* game, uint32_t now);
+/* Landing half-width along the jump axis, and the centered (combo) window. */
+int nabo_jump_tolerance(int size);
+int nabo_jump_center_tolerance(int size);
+/* Difficulty for the platform generated after `steps` landings (pure). */
+void nabo_jump_difficulty(int steps, int* gap_min, int* gap_max, int* small_pct, int* cup_pct);

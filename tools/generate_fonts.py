@@ -8,7 +8,7 @@ Source TTFs stay outside the repository; pass their paths explicitly:
 
 The 16/18 px UI fonts keep every glyph of the previous subset and add any
 non-ASCII character used by the board sources, so new UI text never renders
-as missing glyphs. Source Han Sans has tall ascenders; line heights are
+as missing glyphs. --prune instead keeps only characters the sources use. Source Han Sans has tall ascenders; line heights are
 tightened after conversion so existing layouts keep their rhythm.
 """
 import argparse
@@ -84,12 +84,16 @@ def main():
     parser.add_argument('--sans', type=Path, required=True)
     parser.add_argument('--archivo', type=Path, required=True)
     parser.add_argument('--mono', type=Path, required=True)
+    parser.add_argument('--prune', action='store_true',
+                        help='drop glyphs no board source uses any more (saves flash); '
+                             'without it every previously shipped glyph is kept')
     args = parser.parse_args()
     version = subprocess.check_output([args.converter, '--version'], text=True).strip()
     if version != '1.5.3':
         parser.error('lv_font_conv 1.5.3 required, found ' + version)
     sources = {'sans': args.sans, 'archivo': args.archivo, 'mono': args.mono}
-    menu = ''.join(chr(c) for c in sorted(existing_menu_glyphs() | source_glyphs()))
+    keep = source_glyphs() if args.prune else existing_menu_glyphs() | source_glyphs()
+    menu = ''.join(chr(c) for c in sorted(keep))
     metadata = {'converter': 'lv_font_conv ' + version, 'fonts': {}}
     for name, (source, size, bpp) in FONTS.items():
         font = sources[source]

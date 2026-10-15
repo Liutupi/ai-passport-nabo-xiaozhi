@@ -2,6 +2,15 @@
 
 ## 当前交接状态
 
+**v1.3.0 候选（分支 `v1.3.0-keys-jump-space`，尚未编译/实机验证）**：电脑快捷键精简为 25 项并新增滚轮鼠标与“滑动遥控”页；跳一跳加入按落地次数（`steps`）递增的难度曲线和一人位小平台；发行配置改为 `configs/release-v1.3.0.sdkconfig` 以腾空间。要点：
+
+- HID 报告描述符新增 Report 3（鼠标：按键、X、Y、滚轮），GATT 多一个 Report 特征。电脑缓存了旧描述符时键盘仍可用、鼠标未订阅，`nabo_keys_send` 记为结果 5 并提示重新配对。实机验收需：Windows 与 Mac 各删配对重配一次，滚动、单击、返回、媒体键、退出程序后 BLE 回收（见下文 BLE 退出）。
+- 遥控页靠板型新增的 UP/DOWN `OnPressDown/OnPressUp` 与 OK `OnLongPress`（`nabo_apps_press` / `nabo_apps_ok_long`）。按下即发、450 ms 后每 160 ms 重复、最长 15 s 防丢失抬起；遥控页内双击上键与长按上键被吞掉，长按 OK 退出。其他页面行为不变。
+- NVS：`nabo_keys/maps_v2`（25 项）与 `scroll_rev`；`maps_v1` 只读迁移（`nabo_keys_from_v1`），不删除旧键。
+- 跳一跳：`nabo_jump_t` 末尾新增 `size/next_size/future_size/steps`；`nabo_jump_difficulty()` 是纯函数，前 7 跳不额外消耗随机数。一人位小物在 `cup_row()` 中程序绘制，绘制范围落在既有 96×96 平台包围盒内，脏区测试已覆盖。
+- 空间：配置裁剪的节省量是估算（约 40–70 KB），需用 `idf.py -B xiaozhi-esp32/build-release size` 实测后记入验证记录。字体用 `tools/generate_fonts.py --prune` 生成。
+
+
 最新 Release 为 **v1.2.0**，应用 4,053,008 字节，SHA256 `2c05a52efc76a38597c0a632082c913f8af0acaf6d357f889a58b92829a3c984`：海报风菜单（`nabo_menu_view.cc`）与思源黑体 4-bit 字体。应用分区只剩约 75 KB，新增大块资源前先评估字体子集或改用压缩字体。截图脚本测试只发方向键，不要在设置页发 OK（会改用户设置）。
 
 v1.1.0：应用 3,945,968 字节，SHA256 `5c0d5117bc69ee0fd7115e0a73ce2c12df6e409ccd3a6e08ebe134ef39394620`。新增节奏回声、菜单重设计和菜单面板按需分配；验证范围见 [VALIDATION.md](VALIDATION.md)。发行包的 bootloader、分区表和资源镜像直接复用 v1.0.0 Release（与实机逐字节一致），只替换应用：本机重新构建的 bootloader/资源与已部署字节不同，若把它们打进包，`flash_release.py --mode upgrade` 会对现有设备拒绝写入。

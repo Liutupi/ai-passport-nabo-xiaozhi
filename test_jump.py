@@ -11,7 +11,7 @@ from PIL import Image, ImageDraw, ImageFont
 ROOT=Path(__file__).resolve().parent
 BOARD=ROOT/'xiaozhi-esp32/main/boards/folotoy/ai-passport-nabo'
 class Game(ctypes.Structure):
-    _fields_=[('phase',ctypes.c_int)]+[(n,ctypes.c_uint32) for n in ['rng','score','best','combo','changed_at','charge_at']]+[(n,ctypes.c_int) for n in ['dir','gap','skin','next_skin','distance','player_x','player_y','lift','character','future_dir','future_gap','future_skin','fall_contact_ms','fall_ground_drop','fall_target_x']]+[('pending_at',ctypes.c_uint32),('pending_hold',ctypes.c_int)]+[(n,ctypes.c_bool) for n in ['landed','centered','sound','pending_charge','pending_released']]
+    _fields_=[('phase',ctypes.c_int)]+[(n,ctypes.c_uint32) for n in ['rng','score','best','combo','changed_at','charge_at']]+[(n,ctypes.c_int) for n in ['dir','gap','skin','next_skin','distance','player_x','player_y','lift','character','future_dir','future_gap','future_skin','fall_contact_ms','fall_ground_drop','fall_target_x']]+[('pending_at',ctypes.c_uint32),('pending_hold',ctypes.c_int)]+[(n,ctypes.c_bool) for n in ['landed','centered','sound','pending_charge','pending_released']]+[(n,ctypes.c_int) for n in ['size','next_size','future_size','steps']]
 
 temp=tempfile.TemporaryDirectory()
 folder=Path(temp.name)
@@ -109,7 +109,7 @@ class Tests(unittest.TestCase):
             release=throw(g,now);step(g,release+400)
             self.assertEqual(g.phase,3);self.assertTrue(g.centered);self.assertEqual(g.combo,combo)
             self.assertEqual(g.score,combo*(combo+1));self.assertEqual(g.best,g.score)
-            step(g,release+920);self.assertEqual(g.phase,0);self.assertIn(g.dir,[-1,1]);self.assertTrue(65<=g.gap<=94)
+            step(g,release+920);self.assertEqual(g.phase,0);self.assertIn(g.dir,[-1,1]);self.assertTrue(65<=g.gap<=110)
             now=release+1000
 
     def test_tight_scene_and_separate_charge_regions_cover_changed_pixels(self):
@@ -233,6 +233,79 @@ class Tests(unittest.TestCase):
                 whole=(ctypes.c_uint16*240)();part=(ctypes.c_uint16*81)();lib.nabo_jump_draw_row(ctypes.byref(g),1000,y,0,239,whole);lib.nabo_jump_draw_row(ctypes.byref(g),1000,y,60,140,part)
                 self.assertEqual(list(part),list(whole)[60:141])
 
+def hold_for(distance):
+    # Smallest hold whose integer flight distance equals `distance`.
+    hold=max(0,(distance-4)*1000//150)
+    while 4+hold*150//1000<distance:hold+=1
+    return hold
+
+class Difficulty(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        lib.nabo_jump_difficulty.argtypes=[ctypes.c_int]+[ctypes.POINTER(ctypes.c_int)]*4
+        lib.nabo_jump_tolerance.restype=lib.nabo_jump_center_tolerance.restype=ctypes.c_int
+    def curve(self,steps):
+        v=[ctypes.c_int() for _ in range(4)];lib.nabo_jump_difficulty(steps,*[ctypes.byref(x) for x in v]);return [x.value for x in v]
+    def test_curve_starts_unchanged_then_tightens_monotonically(self):
+        self.assertEqual(self.curve(0),[65,94,0,0]);self.assertEqual(self.curve(6),[65,94,0,0])
+        last=self.curve(0)
+        for steps in range(1,200):
+            now=self.curve(steps)
+            for a,b in zip(last,now):self.assertGreaterEqual(b,a)
+            self.assertLessEqual(now[1],110);self.assertLessEqual(now[2]+now[3],80);self.assertLess(now[0],now[1])
+            last=now
+        self.assertGreater(self.curve(40)[3],0);self.assertEqual(self.curve(200),[73,110,35,45])
+    def test_tolerances_shrink_with_platform_size(self):
+        self.assertEqual([lib.nabo_jump_tolerance(i) for i in range(3)],[16,11,9])
+        self.assertEqual([lib.nabo_jump_center_tolerance(i) for i in range(3)],[5,4,3])
+    def test_landing_window_follows_target_size(self):
+        for size,tol in [(0,16),(1,11),(2,9)]:
+            for delta,lands in [(tol,True),(tol+1,False),(-tol,True),(-tol-1,False)]:
+                g=reset();g.next_size=size;g.gap=90
+                release=throw(g,hold=hold_for(90+delta));step(g,release+400)
+                self.assertEqual(g.landed,lands,(size,delta));self.assertEqual(g.phase,3 if lands else 4)
+    def test_cup_is_worth_an_extra_point_and_sizes_advance(self):
+        g=reset();g.next_size=2;g.gap=80;release=throw(g,hold=hold_for(80+6));step(g,release+400)
+        self.assertTrue(g.landed);self.assertFalse(g.centered);self.assertEqual(g.score,2);self.assertEqual(g.steps,1)
+        future=g.future_size;step(g,release+920)
+        self.assertEqual((g.phase,g.size,g.next_size),(0,2,future))
+    def test_long_perfect_run_reaches_cups_and_wider_gaps(self):
+        g=reset(seed=5);now=1000;sizes=[];gaps=[]
+        for i in range(80):
+            gaps.append(g.gap);sizes.append(g.next_size)
+            release=throw(g,now,hold=hold_for(g.gap));step(g,release+400)
+            self.assertTrue(g.landed,(i,g.gap,g.next_size,g.distance))
+            step(g,release+920);self.assertEqual(g.phase,0);now=release+1000
+        self.assertEqual(sizes[:8],[0]*8);self.assertTrue(all(65<=x<=110 for x in gaps))
+        self.assertIn(2,sizes[20:]);self.assertIn(1,sizes);self.assertGreater(max(gaps[40:]),94)
+    def test_small_and_cup_render_and_clip_consistently(self):
+        for size in (1,2):
+            for seed in range(6):
+                g=reset(seed);g.next_size=size;g.size=size;g.next_skin=seed%6;g.character=seed%2
+                image=render(g,1000);px=image.load()
+                cx=120+g.dir*g.gap-g.dir*g.gap//2;cy=216-g.gap//2
+                self.assertNotEqual(px[cx,cy],px[2,2])  # something drawn at the top centre
+                for y in range(0,320,7):
+                    whole=(ctypes.c_uint16*240)();part=(ctypes.c_uint16*81)()
+                    lib.nabo_jump_draw_row(ctypes.byref(g),1000,y,0,239,whole);lib.nabo_jump_draw_row(ctypes.byref(g),1000,y,60,140,part)
+                    self.assertEqual(list(part),list(whole)[60:141])
+    def test_scene_bounds_cover_small_and_cup_camera_moves(self):
+        lib.nabo_jump_scene_bounds.argtypes=[ctypes.POINTER(Game),ctypes.c_uint32]+[ctypes.POINTER(ctypes.c_int)]*4
+        for size in (1,2):
+            g=reset(3);g.next_size=size;release=throw(g,hold=hold_for(g.gap));step(g,release+400)
+            g.future_size=size;previous=render(g,release+400);last=(Game.from_buffer_copy(g),release+400)
+            for t in range(release+440,release+940,40):
+                step(g,t);current=render(g,t);boxes=[]
+                for game,when in [last,(g,t)]:
+                    vals=[ctypes.c_int() for _ in range(4)]
+                    lib.nabo_jump_scene_bounds(ctypes.byref(game),when,*[ctypes.byref(v) for v in vals]);boxes.append([v.value for v in vals])
+                x0,y0=min(b[0] for b in boxes),min(b[1] for b in boxes);x1,y1=max(b[2] for b in boxes),max(b[3] for b in boxes)
+                before=previous.load();after=current.load()
+                for y in range(320):
+                    for x in range(240):
+                        if before[x,y]!=after[x,y]:self.assertTrue(x0<=x<=x1 and y0<=y<=y1,(size,t,x,y))
+                previous=current;last=(Game.from_buffer_copy(g),t)
+
 def previews():
     states=[]
     g=reset(best=24);states.append(('NABO',g,1000))
@@ -251,7 +324,8 @@ def previews():
     sheet.save(ROOT/'game-art/game-preview.png')
 
 if __name__=='__main__':
-    result=unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.loadTestsFromTestCase(Tests))
+    suite=unittest.TestSuite([unittest.defaultTestLoader.loadTestsFromTestCase(Tests),unittest.defaultTestLoader.loadTestsFromTestCase(Difficulty)])
+    result=unittest.TextTestRunner(verbosity=2).run(suite)
     import _ctypes
     unload_library(lib._handle);temp.cleanup()
     (ROOT/'jump-validation.json').write_text(json.dumps({'actual_C_game_tests':result.testsRun,'pass':result.wasSuccessful(),'sprites_bytes':len(blob),'physical_buttons':'PENDING'},indent=2))
