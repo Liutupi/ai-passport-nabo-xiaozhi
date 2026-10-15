@@ -3,7 +3,9 @@
 #include "nabo_pc.h"
 #include <stdatomic.h>
 #include <string.h>
+#include "esp_heap_caps.h"
 #include "esp_log.h"
+#include "esp_timer.h"
 #include "esp_random.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -21,6 +23,10 @@ static atomic_bool requested, running;
 static bool host_stopped;
 static atomic_uint passkey;
 static uint8_t addr_type;
+/* Controller init needs one contiguous internal block. Right after XiaoZhi
+ * hands over, freed protocol/audio memory may still be coalescing; retry for
+ * a short window instead of failing on the first attempt. */
+static int64_t init_failed_since;
 
 static void advertise(void);
 static int gap(struct ble_gap_event* ev, void* arg) {
@@ -97,12 +103,26 @@ void nabo_pc_apply(void) {
         return;
     if (nabo_keys_wanted() && !nabo_pc_running()) {
         nabo_keys_prepare();
+        ESP_LOGI("NABO-PC", "BLE init: free=%u largest=%u",
+                 (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL),
+                 (unsigned)heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL));
         esp_err_t err = nimble_port_init();
         if (err != ESP_OK) {
+            int64_t now = esp_timer_get_time();
+            if (!init_failed_since)
+                init_failed_since = now;
+            if (now - init_failed_since < 4000000) {
+                ESP_LOGW("NABO-PC", "init failed: %d, retrying", err);
+                vTaskDelay(pdMS_TO_TICKS(200));
+                atomic_store(&requested, true);
+                return;
+            }
             ESP_LOGE("NABO-PC", "init failed: %d", err);
+            init_failed_since = 0;
             nabo_keys_close();
             return;
         }
+        init_failed_since = 0;
         ble_svc_gap_init();
         ble_svc_gatt_init();
         ble_svc_gap_device_name_set("NABO-Xiaozhi-6D68");
