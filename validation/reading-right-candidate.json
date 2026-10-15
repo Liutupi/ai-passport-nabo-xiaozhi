@@ -10,8 +10,8 @@
   "gesture_tests": 12,
   "hid_report_map_unchanged": true,
   "base_images": "Byte-identical to v1.3.0 published boot/table/assets",
-  "physical_device": "NOT FLASHED: target badge not connected after the final left/right gesture build",
-  "wechat_reading": "PENDING physical update and user test",
+  "physical_device": "PASS: flash/preserved-region verification, boot, WiFi, remote entry and real LCD capture",
+  "wechat_reading": "PENDING user test of physical double-UP and OK",
   "source_sha256": {
     "nabo_apps.cc": "68b63e5b3f4902170cabc18ce2b8f2a5448d46ea530b0ad4641f54f4310cc5be",
     "nabo_keys.c": "a86af22e45d7e86ef844d2e20ce84e2af0445b5914af2eb6246eb9d6021058f6",
@@ -19,5 +19,11 @@
     "nabo_keys_model.h": "33d08d71ee6cd03dd574d1338325acb0751f88353345e67e60e6c89a7e3a81b2",
     "nabo_remote_input.c": "10611a90331f4c50feb5fe5d0ffc3c2178372ffd6f7164d27de22cf65fa19357",
     "nabo_remote_input.h": "6cac48f2989a34eb6f0cd22635cd7bd95ef8876d9a4b0493e09e3276e1929bfa"
-  }
+  },
+  "preserved_settings_and_best": true,
+  "remote_page_ready": true,
+  "source_commit": "f52d82f",
+  "device_validation_date": "2026-10-16",
+  "lcd_visual_check": "PASS: all five bindings visible without missing glyphs or clipping",
+  "public_release": "Not published; current public release remains v1.3.0"
 }
