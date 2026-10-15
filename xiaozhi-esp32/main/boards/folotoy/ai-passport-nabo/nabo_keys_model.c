@@ -8,11 +8,11 @@ static const char* const names[] = {
     "向上滑",      "向下滑",      "返回上页", "鼠标单击", "鼠标右键", "确认 / 发送", "取消 / 退出",
     "复制",        "粘贴",        "撤销",     "切换应用", "显示桌面", "区域截图",    "锁定电脑",
     "播放 / 暂停", "快退",        "快进",     "音量增加", "音量降低", "静音",        "上一曲",
-    "下一曲",      "听写 / 结束", "语音翻译", "语音提问", "向右翻页"};
+    "下一曲",      "听写 / 结束", "语音翻译", "语音提问", "向右翻页", "上一页"};
 _Static_assert(sizeof(names) / sizeof(*names) == NABO_KEY_COUNT, "shortcut names");
-static const uint8_t ranges[NABO_KEYS_GROUPS][2] = {{0, 6}, {6, 9}, {15, 8}, {23, 3}};
+static const uint8_t ranges[NABO_KEYS_GROUPS][2] = {{0, 7}, {7, 9}, {16, 8}, {24, 3}};
 static const nabo_key_t menu_order[] = {
-    NABO_KEY_SCROLL_UP, NABO_KEY_SCROLL_DOWN,  NABO_KEY_RIGHT,  NABO_KEY_BACK,
+    NABO_KEY_SCROLL_UP, NABO_KEY_SCROLL_DOWN, NABO_KEY_LEFT, NABO_KEY_RIGHT, NABO_KEY_BACK,
     NABO_KEY_CLICK,     NABO_KEY_RIGHT_CLICK,  NABO_KEY_ENTER,  NABO_KEY_ESCAPE,
     NABO_KEY_COPY,      NABO_KEY_PASTE,        NABO_KEY_UNDO,   NABO_KEY_SWITCH,
     NABO_KEY_DESKTOP,   NABO_KEY_SCREEN_AREA,  NABO_KEY_LOCK,   NABO_KEY_PLAY,
@@ -127,6 +127,7 @@ bool nabo_keys_packet(nabo_keys_os_t os, nabo_key_t key, nabo_key_packet_t* out)
             break;
         /* Web players (YouTube, Bilibili) seek with the arrow keys. */
         case NABO_KEY_SEEK_BACK:
+        case NABO_KEY_LEFT:
             usage = 0x50;
             break;
         case NABO_KEY_SEEK_FORWARD:

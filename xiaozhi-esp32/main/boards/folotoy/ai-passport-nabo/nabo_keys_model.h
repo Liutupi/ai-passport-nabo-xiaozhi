@@ -37,6 +37,7 @@ typedef enum {
     NABO_KEY_TRANSLATE,
     NABO_KEY_ASK,
     NABO_KEY_RIGHT,
+    NABO_KEY_LEFT,
     NABO_KEY_COUNT
 } nabo_key_t;
 /* Report 1: standard eight-byte keyboard report. Report 2: little-endian

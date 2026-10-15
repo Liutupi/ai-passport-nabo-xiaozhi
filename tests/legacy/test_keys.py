@@ -36,7 +36,7 @@ class KeysModel(unittest.TestCase):
 
     def test_all_actions_are_bounded_valid_and_named(self):
         for os in range(2):
-            for k in range(26):
+            for k in range(27):
                 p=self.packet(os,k)
                 self.assertIn(p.report,(1,2,3))
                 self.assertEqual(p.length,{1:8,2:2,3:4}[p.report])
@@ -63,7 +63,7 @@ class KeysModel(unittest.TestCase):
 
     def test_every_value_label_fits_the_column(self):
         for os in range(2):
-            for k in range(26):
+            for k in range(27):
                 label=ctypes.create_string_buffer(32)
                 packet=self.packet(os,k)
                 self.lib.nabo_keys_chord(ctypes.byref(packet),os,label,len(label))
@@ -108,20 +108,20 @@ class KeysModel(unittest.TestCase):
         seen=[]
         for g in range(4):
             seen.extend(self.lib.nabo_keys_group_item(g,r) for r in range(self.lib.nabo_keys_group_count(g)))
-        self.assertEqual(sorted(seen),list(range(26)))
-        self.assertEqual(seen[:6],[0,1,25,2,3,4])
-        self.assertEqual(self.lib.nabo_keys_group_item(4,0),26)
-        self.assertEqual(self.lib.nabo_keys_group_item(-1,0),26)
+        self.assertEqual(sorted(seen),list(range(27)))
+        self.assertEqual(seen[:7],[0,1,26,25,2,3,4])
+        self.assertEqual(self.lib.nabo_keys_group_item(4,0),27)
+        self.assertEqual(self.lib.nabo_keys_group_item(-1,0),27)
         self.assertEqual(self.lib.nabo_keys_group_name(4),b'')
 
     def test_v1_overrides_map_to_surviving_actions_only(self):
         expected={0:22,1:23,2:24,3:5,5:6,8:7,9:8,11:9,16:10,19:13,26:12}
         for v1 in range(-1,35):
-            self.assertEqual(self.lib.nabo_keys_from_v1(v1),expected.get(v1,26))
+            self.assertEqual(self.lib.nabo_keys_from_v1(v1),expected.get(v1,27))
 
     def test_invalid_inputs_and_custom_key_validation(self):
         p=Packet()
-        for os,k in ((-1,0),(2,0),(0,-1),(0,26)):
+        for os,k in ((-1,0),(2,0),(0,-1),(0,27)):
             self.assertFalse(self.lib.nabo_keys_packet(os,k,ctypes.byref(p)))
         for encoded in (0,1,2,3,0x74,0xffff):
             self.assertFalse(self.lib.nabo_keys_override_packet(encoded,ctypes.byref(p)))
@@ -139,6 +139,15 @@ class KeysModel(unittest.TestCase):
             self.lib.nabo_keys_chord(ctypes.byref(packet),os,label,16)
             self.assertEqual(label.value,b'Right')
         self.assertEqual(self.lib.nabo_key_name(25),'向右翻页'.encode())
+
+    def test_previous_page_is_bare_left_arrow_on_both_platforms(self):
+        for os in range(2):
+            packet=self.packet(os,26)
+            self.assertEqual((packet.report,packet.length),(1,8))
+            self.assertEqual(list(packet.data),[0,0,0x50,0,0,0,0,0])
+            self.lib.nabo_keys_reverse_scroll(ctypes.byref(packet))
+            self.assertEqual(list(packet.data),[0,0,0x50,0,0,0,0,0])
+        self.assertEqual(self.lib.nabo_key_name(26),'上一页'.encode())
 
 
 PLATFORM=r'''
@@ -399,12 +408,19 @@ int fixture_case(int which){
   for(int o=0;o<2;++o){
    for(int k=0;k<NABO_KEYS_V2_COUNT;++k)assert(atomic_load(&s_maps[o][k])==nv_v2[o][k]);
    assert(atomic_load(&s_maps[o][NABO_KEY_RIGHT])==DEFAULT_MAP);
+   assert(atomic_load(&s_maps[o][NABO_KEY_LEFT])==DEFAULT_MAP);
   }
   assert(nabo_keys_os()==NABO_KEYS_WINDOWS && nabo_keys_scroll_reversed());
-  atomic_store(&s_maps[1][NABO_KEY_RIGHT],0x0050);assert(save_preferences() && nv_have_v3);
+  atomic_store(&s_maps[1][NABO_KEY_RIGHT],0x0050);atomic_store(&s_maps[0][NABO_KEY_LEFT],0x004f);assert(save_preferences() && nv_have_v3);
   atomic_store(&s_loaded,false);atomic_store(&s_revision,0);load_preferences();
   assert(atomic_load(&s_maps[1][NABO_KEY_RIGHT])==0x0050);
+  assert(atomic_load(&s_maps[0][NABO_KEY_LEFT])==0x004f);
   for(int o=0;o<2;++o)for(int k=0;k<NABO_KEYS_V2_COUNT;++k)assert(atomic_load(&s_maps[o][k])==nv_v2[o][k]);
+ }
+ if(which==23){
+  assert(nabo_keys_send(NABO_KEY_LEFT));sender(NULL);
+  assert(notifies==2 && sent[0].report==1 && sent[0].len==8 && sent[0].data[0]==0 && sent[0].data[2]==0x50);
+  for(int i=0;i<8;++i)assert(sent[1].data[i]==0);
  }
  return 1;
 }
@@ -430,7 +446,7 @@ class KeysRuntime(unittest.TestCase):
             cls.addClassCleanup(_ctypes.FreeLibrary,cls.lib._handle)
 
 
-for i,name in enumerate(("keyboard_keyup","consumer_keyup","bounded_queue_exit","stale_connection","release_failure_disconnect","press_failure","suspend_boot","platform_map_persistence","disconnect_during_press","allocation_failure_restore","gatt_security_map","authentication_disconnect","invalid_usb_map","hogp_services_identity","battery_subscription_security_generation","encrypted_hid_discovery","mouse_wheel_keyup","scroll_reverse_persists","v1_override_migration","stale_pairing_hint","boot_protocol_keyboard_only","reading_right_keyup","v2_append_migration")):
+for i,name in enumerate(("keyboard_keyup","consumer_keyup","bounded_queue_exit","stale_connection","release_failure_disconnect","press_failure","suspend_boot","platform_map_persistence","disconnect_during_press","allocation_failure_restore","gatt_security_map","authentication_disconnect","invalid_usb_map","hogp_services_identity","battery_subscription_security_generation","encrypted_hid_discovery","mouse_wheel_keyup","scroll_reverse_persists","v1_override_migration","stale_pairing_hint","boot_protocol_keyboard_only","reading_right_keyup","v2_append_migration","reading_left_keyup")):
     def check(self,case=i):self.assertEqual(self.lib.fixture_case(case),1)
     setattr(KeysRuntime,"test_"+name,check)
 

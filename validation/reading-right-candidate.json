@@ -3,18 +3,21 @@
   "app": {
     "file": "xiaozhi.bin",
     "offset": "0x10000",
-    "bytes": 4006048,
-    "sha256": "dec70cca8a486491921a828bd3a68353761920d1387c80f0568e9fa1d5178505"
+    "bytes": 4006288,
+    "sha256": "206a824014e1b04b4e02b64cad2f462d8610a620dd721fe3596ca8d59a701fbf"
   },
-  "production_regression_tests": 138,
+  "production_regression_tests": 140,
+  "gesture_tests": 12,
   "hid_report_map_unchanged": true,
   "base_images": "Byte-identical to v1.3.0 published boot/table/assets",
-  "physical_device": "NOT FLASHED: target USB disappeared during identity check; write never started",
+  "physical_device": "NOT FLASHED: target badge not connected after the final left/right gesture build",
   "wechat_reading": "PENDING physical update and user test",
   "source_sha256": {
-    "nabo_apps.cc": "9a262b340e0a6e0affda151635216f40cdf1812636853e5818887d9127dd9ec1",
+    "nabo_apps.cc": "68b63e5b3f4902170cabc18ce2b8f2a5448d46ea530b0ad4641f54f4310cc5be",
     "nabo_keys.c": "a86af22e45d7e86ef844d2e20ce84e2af0445b5914af2eb6246eb9d6021058f6",
-    "nabo_keys_model.c": "03474dfc12f39e9361543079077324c6649980e278e4a7ab640db8fca789f907",
-    "nabo_keys_model.h": "18de8382e0808dce36fde7b954877a522d7a449548a92cbd9f255d6feb083875"
+    "nabo_keys_model.c": "0b4a495e4ae929863eeb4efb1c9c1f312c8ba68f4936eaf2db52cce1d774f658",
+    "nabo_keys_model.h": "33d08d71ee6cd03dd574d1338325acb0751f88353345e67e60e6c89a7e3a81b2",
+    "nabo_remote_input.c": "10611a90331f4c50feb5fe5d0ffc3c2178372ffd6f7164d27de22cf65fa19357",
+    "nabo_remote_input.h": "6cac48f2989a34eb6f0cd22635cd7bd95ef8876d9a4b0493e09e3276e1929bfa"
   }
 }
