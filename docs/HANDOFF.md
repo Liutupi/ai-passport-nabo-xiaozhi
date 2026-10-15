@@ -2,7 +2,7 @@
 
 ## 当前交接状态
 
-**v1.3.0 候选（分支 `v1.3.0-keys-jump-space`，已在用户工牌编译刷入并做串口/截屏验证，见 `validation/v1.3.0-candidate.json`；配对电脑实测未做）**：电脑快捷键精简为 25 项并新增滚轮鼠标与“滑动遥控”页；跳一跳加入按落地次数（`steps`）递增的难度曲线和一人位小平台；发行配置改为 `configs/release-v1.3.0.sdkconfig` 以腾空间。要点：
+最新 Release 为 **v1.3.0**，应用 4,005,824 字节，SHA256 `068a543dfbd57e912fbcbd7c7fcb827afafca68230df494f68bb4c336e111e47`（固件源码提交 `0788eac`，见 `validation/v1.3.0.json`）：电脑快捷键精简为 25 项并新增滚轮鼠标与“滑动遥控”页；跳一跳加入按落地次数（`steps`）递增的难度曲线和一人位小平台；发行配置改为 `configs/release-v1.3.0.sdkconfig` 以腾空间。要点：
 
 - HID 报告描述符新增 Report 3（鼠标：按键、X、Y、滚轮），GATT 多一个 Report 特征。电脑缓存了旧描述符时键盘仍可用、鼠标未订阅，`nabo_keys_send` 记为结果 5 并提示重新配对。实机验收需：Windows 与 Mac 各删配对重配一次，滚动、单击、返回、媒体键、退出程序后 BLE 回收（见下文 BLE 退出）。
 - 遥控页靠板型新增的 UP/DOWN `OnPressDown/OnPressUp` 与 OK `OnLongPress`（`nabo_apps_press` / `nabo_apps_ok_long`）。按下即发、450 ms 后每 160 ms 重复、最长 15 s 防丢失抬起；遥控页内双击上键与长按上键被吞掉，长按 OK 退出。其他页面行为不变。

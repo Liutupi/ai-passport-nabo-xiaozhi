@@ -1,7 +1,6 @@
 {
-  "release": "v1.3.0 candidate (not a GitHub Release)",
+  "release": "v1.3.0",
   "date": "2026-10-15",
-  "source_commit": "0788eac",
   "idf": "ESP-IDF v6.0.2 (Windows)",
   "app_bytes": 4005824,
   "app_sha256": "068a543dfbd57e912fbcbd7c7fcb827afafca68230df494f68bb4c336e111e47",
@@ -21,5 +20,8 @@
     "jump one-person items on screen (needs ~20+ real landings)",
     "voice conversation after keyboard session"
   ],
-  "regression_found_and_fixed": "BLE: v1.2 and the first v1.3 build could leave XiaoZhi suspended after the keyboard page when the NimBLE host never started (nimble_port_stop -> BLE_HS_EALREADY retried forever; NABO hidden). Fixed in 0788eac with smaller BLE pools and an EALREADY exit path."
+  "regression_found_and_fixed": "BLE: v1.2 and the first v1.3 build could leave XiaoZhi suspended after the keyboard page when the NimBLE host never started (nimble_port_stop -> BLE_HS_EALREADY retried forever; NABO hidden). Fixed in 0788eac with smaller BLE pools and an EALREADY exit path.",
+  "firmware_source_commit": "0788eac",
+  "user_acceptance": "user confirmed after device checks (\"可以了\") and asked to publish",
+  "base_images_reused_from": "v1.0.0 (bootloader, partition table, assets byte-identical to the device)"
 }
