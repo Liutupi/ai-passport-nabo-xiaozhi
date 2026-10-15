@@ -42,10 +42,12 @@ python -m pip install -r requirements-dev.txt
 python tools/run_tests.py
 ```
 
-GCC/G++ 必须在 PATH 中，或设置 `CC`、`CXX`。Windows 可用 MinGW/w64devkit；Linux 使用系统 GCC。测试直接编译生产 C/C++：99 个语音指令案例、PCM 分块极值/尾块、18 个游戏回归、111 个骰子/木鱼/快捷键/电台回归、电台分块和碎片堆分配，另有上游宿主测试。
+GCC/G++ 必须在 PATH 中，或设置 `CC`、`CXX`。Windows 可用 MinGW/w64devkit；Linux 使用系统 GCC。测试直接编译生产 C/C++，覆盖语音指令、PCM 分块极值/尾块、游戏、骰子/木鱼/快捷键/电台、电台分块和碎片堆分配，另有上游宿主测试。v1.3.1 的相关回归为 140 项，加上 `test_remote_input.py` 中 12 项遥控手势测试；`test_release_package.py` 另有 7 项安装包校验测试。
 
 宿主测试不刷工牌。通过后仍须在真实硬件验证对话、音频、按键和程序切换。CI 不替代这一步。
 
 ## 可复现性的范围
 
 v1.0.0 发布的是已经验收的原镜像，SHA256 见 Release 清单。源文件、SDK 配置与组件锁可复现功能，但重新编译的时间戳、路径和 ESP-IDF 版本字符串可能影响字节；不能将重新构建的不同 SHA256 自动认作同一份已验收镜像。
+
+v1.3.1 同样发布已在工牌验收的应用（源码提交 `f52d82f`，ESP-IDF 6.0.2，仍使用 `configs/release-v1.3.0.sdkconfig`），没有在用户验收后重编替换。基础镜像沿用已部署的 v1.0.0–v1.3.0 镜像；来源与验证范围见 `validation/v1.3.1.json`。

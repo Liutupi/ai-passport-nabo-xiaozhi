@@ -1,5 +1,5 @@
 {
-  "candidate": "1.3.1-candidate",
+  "release_version": "1.3.1",
   "app": {
     "file": "xiaozhi.bin",
     "offset": "0x10000",
@@ -11,7 +11,7 @@
   "hid_report_map_unchanged": true,
   "base_images": "Byte-identical to v1.3.0 published boot/table/assets",
   "physical_device": "PASS: flash/preserved-region verification, boot, WiFi, remote entry and real LCD capture",
-  "wechat_reading": "PENDING user test of physical double-UP and OK",
+  "wechat_reading": "PASS: user confirmed physical double-UP previous page, short OK next page, UP/DOWN scrolling and long OK exit all work",
   "source_sha256": {
     "nabo_apps.cc": "68b63e5b3f4902170cabc18ce2b8f2a5448d46ea530b0ad4641f54f4310cc5be",
     "nabo_keys.c": "a86af22e45d7e86ef844d2e20ce84e2af0445b5914af2eb6246eb9d6021058f6",
@@ -22,8 +22,14 @@
   },
   "preserved_settings_and_best": true,
   "remote_page_ready": true,
-  "source_commit": "f52d82f",
+  "source_commit": "f52d82f60dfe38be240a690a764cd0823f761da6",
   "device_validation_date": "2026-10-16",
+  "user_acceptance_date": "2026-10-16",
+  "acceptance_scope": "User-operated badge and connected computer in WeChat Reading; other operating systems and reading apps not revalidated",
   "lcd_visual_check": "PASS: all five bindings visible without missing glyphs or clipping",
-  "public_release": "Not published; current public release remains v1.3.0"
+  "public_release": "v1.3.1",
+  "release_image_provenance": "Exact user-accepted candidate application; no rebuild or binary changes after device validation",
+  "sdk": "ESP-IDF 6.0.2",
+  "sdkconfig": "configs/release-v1.3.0.sdkconfig",
+  "installer_package_tests": 7
 }
