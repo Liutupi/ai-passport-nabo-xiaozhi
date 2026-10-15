@@ -1,0 +1,32 @@
+{
+  "release": "v1.2.0",
+  "date": "2026-10-15",
+  "app_bytes": 4053008,
+  "app_sha256": "2c05a52efc76a38597c0a632082c913f8af0acaf6d357f889a58b92829a3c984",
+  "base_images_reused_from": "v1.0.0",
+  "current_image": {
+    "mac_checked_before_write": "PASS",
+    "app_only_flash_hash_verified": "PASS",
+    "lcd_captures": [
+      "tools",
+      "settings",
+      "status",
+      "radio",
+      "keys",
+      "rhythm_select",
+      "rhythm_listen",
+      "dice",
+      "muyu",
+      "jump"
+    ],
+    "user_data_preserved": "PASS: jump best 311, merit count, user rhythm grades",
+    "test_side_effect": "speaker setting toggled off by a scripted key press, restored to on and verified on screen",
+    "not_captured": [
+      "battery",
+      "wifi_add (would start the provisioning access point)"
+    ],
+    "readback_after_release": "NOT RUN: badge swapped for another board before release"
+  },
+  "host_regressions": "PASS; upstream host tests, 18 game, 8 rhythm, 111 ported, 117 parser, PCM/radio/allocator, package guards",
+  "user_acceptance": "user approved the poster-style UI from device screenshots"
+}

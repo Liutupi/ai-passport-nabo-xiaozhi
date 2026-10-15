@@ -13,7 +13,7 @@
 
 ## 字体与组件
 
-中文菜单字体基于 LXGW WenKai，SIL Open Font License 1.1 全文位于板型目录 `OFL-LXGW.txt`。节奏回声的海报标题字体 `nabo_poster_font_28/48` 子集自 Archivo Black（Copyright 2017 The Archivo Black Project Authors，OFL 1.1，全文 `OFL-ArchivoBlack.txt`），小号标签字体 `nabo_mono_font_12` 子集自 Space Mono Bold（Copyright 2016 The Space Mono Project Authors，OFL 1.1，全文 `OFL-SpaceMono.txt`）。字体由 `tools/generate_fonts.py` 用 lv_font_conv 1.5.3 生成，来源校验和记录在 `game-art/fonts.json`；源 TTF 不入库。ESP-IDF、LVGL、Espressif/其他 IDF 组件分别保留其上游许可，通过 `main/idf_component.yml` 与 `dependencies.lock` 解析；MIT 不覆盖这些依赖的独立条款。
+界面中文字体 `nabo_menu_font_16` / `nabo_ui_font_18` 子集自思源黑体 Source Han Sans CN Medium（Copyright 2014-2025 Adobe，保留字体名 “Source”，OFL 1.1，全文 `OFL-SourceHanSans.txt`）；子集以 nabo_* 命名，不使用保留字体名。v1.1.0 及更早版本使用 LXGW WenKai（OFL 1.1，`OFL-LXGW.txt` 保留以对应旧版源码）。节奏回声的海报标题字体 `nabo_poster_font_28/48` 子集自 Archivo Black（Copyright 2017 The Archivo Black Project Authors，OFL 1.1，全文 `OFL-ArchivoBlack.txt`），小号标签字体 `nabo_mono_font_12` 子集自 Space Mono Bold（Copyright 2016 The Space Mono Project Authors，OFL 1.1，全文 `OFL-SpaceMono.txt`）。字体由 `tools/generate_fonts.py` 用 lv_font_conv 1.5.3 生成，来源校验和记录在 `game-art/fonts.json`；源 TTF 不入库。ESP-IDF、LVGL、Espressif/其他 IDF 组件分别保留其上游许可，通过 `main/idf_component.yml` 与 `dependencies.lock` 解析；MIT 不覆盖这些依赖的独立条款。
 
 ## NABO 和游戏资源
 

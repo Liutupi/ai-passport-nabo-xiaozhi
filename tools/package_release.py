@@ -56,7 +56,7 @@ shutil.copy2(root/'tools/flash_release.py', dest/'tools/flash_release.py')
 shutil.copytree(root/'xiaozhi-esp32/main/boards/folotoy/ai-passport-nabo/helix', dest/'third_party/helix-mp3', dirs_exist_ok=True)
 shutil.copy2(root/'xiaozhi-esp32/main/boards/folotoy/ai-passport-nabo/nabo_helix_buffers.c', dest/'third_party/helix-mp3/nabo_helix_buffers.c')
 (dest/'licenses').mkdir(exist_ok=True)
-for font_license in ['OFL-LXGW.txt', 'OFL-ArchivoBlack.txt', 'OFL-SpaceMono.txt']:
+for font_license in ['OFL-SourceHanSans.txt', 'OFL-ArchivoBlack.txt', 'OFL-SpaceMono.txt']:
     shutil.copy2(root/'xiaozhi-esp32/main/boards/folotoy/ai-passport-nabo'/font_license, dest/'licenses'/font_license)
 # Refuse accidental private files before archiving, even when reusing a directory.
 files = sorted(p for p in dest.rglob('*') if p.is_file())

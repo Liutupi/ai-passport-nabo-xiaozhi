@@ -4,7 +4,11 @@
   "app_bytes": 3945968,
   "app_sha256": "5c0d5117bc69ee0fd7115e0a73ce2c12df6e409ccd3a6e08ebe134ef39394620",
   "base_images_reused_from": "v1.0.0",
-  "base_images_match_device_backup": {"bootloader": true, "partition_table": true, "assets": true},
+  "base_images_match_device_backup": {
+    "bootloader": true,
+    "partition_table": true,
+    "assets": true
+  },
   "current_image": {
     "app_only_flash_hash_verified": "PASS",
     "nvs_preserved": "PASS: jump best 311 and merit count present after upgrade",
@@ -12,12 +16,25 @@
     "idle_heap_bytes": 36216,
     "pre_handshake_heap_bytes": 45956,
     "esp_aes_alloc_failure": "not observed (was observed once with the always-resident panel build)",
-    "lcd_captures": ["tools", "settings", "status", "radio", "rhythm_select", "rhythm_listen", "rhythm_turn", "rhythm_result", "jump", "dice", "muyu", "home"],
+    "lcd_captures": [
+      "tools",
+      "settings",
+      "status",
+      "radio",
+      "rhythm_select",
+      "rhythm_listen",
+      "rhythm_turn",
+      "rhythm_result",
+      "jump",
+      "dice",
+      "muyu",
+      "home"
+    ],
     "rhythm_full_song_to_result": "PASS (serial-simulated presses)",
     "rhythm_physical_key_timing": "NOT RUN",
     "multi_turn_conversation": "NOT RUN in this release; audio lifecycle unchanged",
     "ble_paired_exit": "NOT RUN in this release; BLE code unchanged",
-    "readback_after_release": "NOT RUN: device disconnected"
+    "readback_after_release": "PASS: bootloader, partition table, app and assets byte-identical to the v1.1.0 Release images"
   },
   "host_regressions": "PASS; upstream host tests, 18 game, 8 rhythm, 111 ported, 117 parser, PCM/radio/allocator, package guards"
 }
