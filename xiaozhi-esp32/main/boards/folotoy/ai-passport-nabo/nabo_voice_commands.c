@@ -62,7 +62,8 @@ const char* nabo_voice_launch_app(const char* transcript) {
                    {"色子", "dice"},           {"功德木鱼", "muyu"},     {"木鱼", "muyu"},
                    {"网络电台", "radio"},      {"电台", "radio"},        {"跳一跳", "jump"},
                    {"电脑快捷键", "computer"}, {"电脑控制", "computer"}, {"更多设置", "settings"},
-                   {"设置", "settings"},       {"工具", "tools"}};
+                   {"设置", "settings"},       {"工具", "tools"},        {"节奏回声", "rhythm"},
+                   {"节奏游戏", "rhythm"},     {"节奏", "rhythm"}};
     for (size_t i = 0; i < sizeof(aliases) / sizeof(*aliases); ++i) {
         const char* rest = at;
         if (!take_prefix(&rest, aliases[i].spoken))

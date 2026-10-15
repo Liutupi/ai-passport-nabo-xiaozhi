@@ -16,7 +16,8 @@ with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as folder:
     parse.argtypes=[ctypes.c_char_p];parse.restype=ctypes.c_char_p
     aliases={'摇骰子':'dice','骰子':'dice','摇色子':'dice','色子':'dice','木鱼':'muyu','功德木鱼':'muyu',
              '网络电台':'radio','电台':'radio','跳一跳':'jump','电脑快捷键':'computer','电脑控制':'computer',
-             '设置':'settings','更多设置':'settings','工具':'tools'}
+             '设置':'settings','更多设置':'settings','工具':'tools',
+             '节奏回声':'rhythm','节奏游戏':'rhythm','节奏':'rhythm'}
     count=0
     for spoken,app in aliases.items():
         for template in ['打开{}。','请打开{}','小智，请你帮我打开{}吧！','我想玩{}','开启一下{}程序', ' 打开 {} 一下 ']:

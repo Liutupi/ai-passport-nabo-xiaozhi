@@ -2,6 +2,10 @@
 
 ## 当前交接状态
 
+最新 Release 为 **v1.1.0**，应用 3,945,968 字节，SHA256 `5c0d5117bc69ee0fd7115e0a73ce2c12df6e409ccd3a6e08ebe134ef39394620`。新增节奏回声、菜单重设计和菜单面板按需分配；v1.1.0 的验证范围见 [VALIDATION.md](VALIDATION.md) 首节。发行包的 bootloader、分区表和资源镜像直接复用 v1.0.0 Release（与实机逐字节一致），只替换应用：本机重新构建的 bootloader/资源与已部署字节不同，若把它们打进包，`flash_release.py --mode upgrade` 会对现有设备拒绝写入。
+
+下面是 v1.0.0 的原始交接状态。
+
 首个定制 Release 为 **v1.0.0**，应用 3,901,088 字节，SHA256：
 
 ```text
@@ -25,6 +29,10 @@ b18f915d0295181609b225b475511e1e8a5e60d950b2390fc33191e7c0278d40
 | nabo_radio*.c / nabo_helix_buffers.c | 电台目录、HTTP 流、解码/分块重采样、碎片堆友好分配 |
 | nabo_keys*.c / nabo_pc.c | BLE HID、分组映射与退出回收 |
 | nabo_dice*.c / nabo_muyu*.c | 骰子/木鱼模型、画面、声音与持久化 |
+| nabo_rhythm_model.c / nabo_rhythm_sound.c | 节奏回声关卡、判定（16 kHz 采样时钟）、合成音色；宿主测试 test_rhythm.py |
+| nabo_rhythm_play.c | 音频 worker 与 LVGL 之间的歌曲时钟锚点、音效队列、延迟补偿 |
+| nabo_rhythm_ui.c / nabo_rhythm_stage.c | 选关/结算与演奏画面；对象只在程序打开时存在 |
+| nabo_*_font_*.c | 由 tools/generate_fonts.py 生成；新增中文界面文字后重新生成，字形不足会显示缺字 |
 
 核心层只通过 `Board::HandleRecognizedSpeech()` 可选接口调用板型，不能在 `application.cc` 中硬编码 NABO 程序关键词。STT 回调通过 `Application::Schedule()` 在主任务显示文字并处理打开指令。其他板型默认不处理该接口。
 
@@ -41,6 +49,10 @@ b18f915d0295181609b225b475511e1e8a5e60d950b2390fc33191e7c0278d40
 **声音：** 骰子/木鱼继续 16 kHz 双声道 I2S、4×160 帧 DMA。小智 24 kHz 与本地音效的所有权和采样率不同，要先完成退出再切换。蓄力 gain 0.65、15 ms 淡入淡出、约 8 ms 声音切换过渡已被接受。界面 100% 需保留扬声器余量，不能直接恢复满幅。
 
 **按键：** 右侧上键双击回上一级，单击原功能、长按直接回小智。页面父级要保留，特别是设置编辑、状态页、电台目录、电脑分组。左侧电源键不是可读取的 MCU 按键。
+
+**菜单内存：** LVGL 使用系统堆（`CONFIG_LV_USE_CLIB_MALLOC`）。菜单面板在进入菜单页时创建、回到 NABO 或进入游戏时删除，节奏回声同理。不要改回开机常驻：v1.1.0 首次常驻版本在开机 MQTT 发布工具列表时出现 `esp-aes: Failed to allocate memory`，改为按需后待机空闲堆约 30 KB → 36 KB。
+
+**节奏判定：** 判定以 OK/下键的 press-down 时间戳为准（下键按下由板型 `OnPressDown` 转发），通过 worker 写 I2S 前记录的锚点换算到歌曲采样位置。默认补偿 42 ms，可用 `>rhythm.latency=` 调整；`>rhythm.best.reset` 清除成绩，脚本测试后应执行，避免留下假成绩。
 
 ## 诊断与回归
 

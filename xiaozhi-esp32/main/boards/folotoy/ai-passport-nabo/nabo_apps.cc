@@ -37,9 +37,12 @@ extern "C" {
 #include "nabo_pc.h"
 #include "nabo_radio.h"
 #include "nabo_radio_menu.h"
+#include "nabo_rhythm_play.h"
 #include "nabo_voice_commands.h"
 LV_FONT_DECLARE(nabo_menu_font_16);
+LV_FONT_DECLARE(nabo_mono_font_12);
 }
+#include "nabo_rhythm_ui.h"
 
 static std::atomic<int> wanted{NABO_HOME}, request_revision{0}, setting_command{-1};
 static std::atomic<int> detail_parent{NABO_SETTINGS};
@@ -50,7 +53,14 @@ static std::atomic<uint32_t> best_score{0};
 static std::atomic<bool> best_dirty{false};
 static std::atomic<int64_t> best_changed_at{0};
 static std::atomic<int> jump_sound{0};
-static lv_obj_t *panel, *title, *body, *footer, *rows[7], *values[7], *selection;
+static lv_obj_t *app_screen, *panel, *title, *body, *footer, *rows[7], *values[7], *selection;
+static lv_obj_t *tag, *icons[7], *scroll_track, *scroll_thumb, *card, *card_title, *card_sub,
+    *meter, *meter_fill, *footer_rule;
+// Menu palette: NABO black with the passport-green accent.
+static constexpr uint32_t kMenuBg = 0x0b0e14, kMenuCard = 0x151b25, kMenuSelect = 0x1b2633,
+                          kMenuEdit = 0x183a2c, kMenuAccent = 0x3ddc97, kMenuText = 0xe9edf3,
+                          kMenuMuted = 0x7d8799, kMenuRule = 0x222a36;
+static constexpr int kRowTop = 52, kRowPitch = 30;
 static NaboApp page = NABO_HOME;
 static int selected = 1, settings_selected = 1, edit = -1, key_group = -1, key_selected = 0,
            shown_revision = -1;
@@ -104,10 +114,14 @@ static lv_image_dsc_t jump_source = {};
 static lv_draw_buf_t* jump_strip;
 static int64_t jump_last_frame;
 
-static const char* tools[] = {"返回 NABO", "跳一跳",     "摇骰子",  "功德木鱼",
-                              "网络电台",  "电脑快捷键", "更多设置"};
-static const NaboApp tool_apps[] = {NABO_HOME,  NABO_JUMP, NABO_DICE,    NABO_MUYU,
-                                    NABO_RADIO, NABO_KEYS, NABO_SETTINGS};
+static const char* tools[] = {"返回 NABO", "跳一跳",   "节奏回声",   "摇骰子",
+                              "功德木鱼",  "网络电台", "电脑快捷键", "更多设置"};
+static const char* tool_icons[] = {LV_SYMBOL_HOME,       LV_SYMBOL_PLAY, LV_SYMBOL_AUDIO,
+                                   LV_SYMBOL_SHUFFLE,    LV_SYMBOL_BELL, LV_SYMBOL_VOLUME_MAX,
+                                   LV_SYMBOL_KEYBOARD,   LV_SYMBOL_SETTINGS};
+static constexpr int kToolCount = sizeof(tools) / sizeof(*tools);
+static const NaboApp tool_apps[] = {NABO_HOME, NABO_JUMP,  NABO_RHYTHM, NABO_DICE,
+                                    NABO_MUYU, NABO_RADIO, NABO_KEYS,   NABO_SETTINGS};
 enum Setting {
     ST_BACK,
     ST_VOLUME,
@@ -126,6 +140,10 @@ enum Setting {
 static const char* settings_names[] = {"返回",     "音量",       "扬声器",   "屏幕亮度",
                                        "自动休眠", "麦克风增益", "添加网络", "无线网络",
                                        "设备状态", "电池信息",   "关闭屏幕", "关机"};
+static const char* settings_icons[] = {
+    LV_SYMBOL_LEFT, LV_SYMBOL_VOLUME_MAX, LV_SYMBOL_AUDIO, LV_SYMBOL_EYE_OPEN,
+    LV_SYMBOL_PAUSE, LV_SYMBOL_CALL, LV_SYMBOL_PLUS, LV_SYMBOL_WIFI,
+    LV_SYMBOL_LIST, LV_SYMBOL_BATTERY_3, LV_SYMBOL_EYE_CLOSE, LV_SYMBOL_POWER};
 
 extern "C" bool muse_settings_speaker_on(void) { return speaker.load(); }
 extern "C" bool muse_wifi_connected(void) {
@@ -141,7 +159,7 @@ extern "C" void app_nabo_radio_network_end(void) {}
 extern "C" bool app_nabo_radio_active(void) { return nabo_radio_active(); }
 
 void nabo_apps_open(NaboApp app, int delay_ms) {
-    if (app < NABO_HOME || app > NABO_WIFI)
+    if (app < NABO_HOME || app > NABO_RHYTHM)
         return;
     int origin = wanted.load();
     if ((app == NABO_STATUS || app == NABO_BATTERY || app == NABO_WIFI) && origin != app)
@@ -155,6 +173,9 @@ void nabo_apps_open(NaboApp app, int delay_ms) {
 }
 bool nabo_apps_active() { return wanted.load() != NABO_HOME || ready.load(); }
 bool nabo_apps_is_jump() { return wanted.load() == NABO_JUMP && ready.load(); }
+bool nabo_apps_is_fast() {
+    return (wanted.load() == NABO_JUMP || wanted.load() == NABO_RHYTHM) && ready.load();
+}
 
 static void save_settings() {
     nvs_handle_t h;
@@ -331,7 +352,8 @@ static void diagnostic(const char* line) {
             NaboApp app;
         } aliases[] = {{"home", NABO_HOME},     {"tools", NABO_TOOLS}, {"settings", NABO_SETTINGS},
                        {"dice", NABO_DICE},     {"muyu", NABO_MUYU},   {"radio", NABO_RADIO},
-                       {"computer", NABO_KEYS}, {"jump", NABO_JUMP},   {"status", NABO_STATUS}};
+                       {"computer", NABO_KEYS}, {"jump", NABO_JUMP},   {"status", NABO_STATUS},
+                       {"rhythm", NABO_RHYTHM}};
         bool found = false;
         for (const auto& item : aliases)
             if (!strcmp(name, item.name)) {
@@ -385,6 +407,13 @@ static void diagnostic(const char* line) {
                 jump_sound = 1;
             }
         });
+    } else if (!strcmp(line, ">rhythm.best.reset")) {
+        DisplayLockGuard lock(Board::GetInstance().GetDisplay());
+        nabo_rhythm_ui_reset_best();
+        printf("\n@rhythm best cleared\n");
+    } else if (!strncmp(line, ">rhythm.latency=", 16)) {
+        nabo_rhythm_play_set_latency_ms(atoi(line + 16));
+        printf("\n@rhythm latency_ms=%d\n", nabo_rhythm_play_latency_ms());
     } else if (!strcmp(line, ">apps.capture")) {
         app.Schedule(
             []() { static_cast<NaboDisplay*>(Board::GetInstance().GetDisplay())->CaptureLCD(); });
@@ -526,6 +555,8 @@ static void worker(void*) {
                 nabo_jump_sound_fill(&jump_audio, samples, 320);
             else
                 nabo_jump_sound_start(&jump_audio, 0, 0);
+            if (desired == NABO_RHYTHM)
+                nabo_rhythm_audio_fill(samples, 320);
             // A continuous 20 ms clock prevents underruns and clears each effect's
             // DMA tail. Do not sleep again after the blocking I2S write.
             if (desired != NABO_HOME && speaker.load()) {
@@ -617,6 +648,16 @@ static lv_obj_t* label(lv_obj_t* parent, uint32_t color, const char* text, int x
     lv_label_set_text(obj, text);
     return obj;
 }
+static lv_obj_t* box(lv_obj_t* parent, int x, int y, int w, int h, uint32_t color) {
+    auto obj = lv_obj_create(parent);
+    lv_obj_remove_style_all(obj);
+    lv_obj_set_pos(obj, x, y);
+    lv_obj_set_size(obj, w, h);
+    lv_obj_set_style_bg_color(obj, lv_color_hex(color), 0);
+    lv_obj_set_style_bg_opa(obj, LV_OPA_COVER, 0);
+    lv_obj_remove_flag(obj, static_cast<lv_obj_flag_t>(LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE));
+    return obj;
+}
 static void show_text(lv_obj_t* obj, const char* text) {
     if (strcmp(lv_label_get_text(obj), text))
         lv_label_set_text(obj, text);
@@ -657,32 +698,79 @@ static lv_result_t jump_area(lv_image_decoder_t*, lv_image_decoder_dsc_t* dsc,
     dsc->decoded = buf;
     return LV_RESULT_OK;
 }
-void nabo_apps_build(lv_obj_t* screen) {
+// The menu panel exists only while a menu page is shown: LVGL allocates from
+// the C3's system heap, which XiaoZhi's TLS and Opus need on the NABO home page.
+static void build_panel() {
     if (panel)
         return;
-    panel = lv_obj_create(screen);
+    panel = lv_obj_create(app_screen);
     lv_obj_remove_style_all(panel);
     lv_obj_set_size(panel, 240, 320);
-    lv_obj_set_style_bg_color(panel, lv_color_hex(0x10141d), 0);
+    lv_obj_set_style_bg_color(panel, lv_color_hex(kMenuBg), 0);
     lv_obj_set_style_bg_opa(panel, LV_OPA_COVER, 0);
     lv_obj_remove_flag(panel, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_add_flag(panel, LV_OBJ_FLAG_HIDDEN);
-    title = label(panel, 0xf3f5fa, "工具", 16, 15);
-    selection = lv_obj_create(panel);
-    lv_obj_remove_style_all(selection);
-    lv_obj_set_size(selection, 224, 29);
-    lv_obj_set_style_bg_color(selection, lv_color_hex(0x233647), 0);
-    lv_obj_set_style_bg_opa(selection, LV_OPA_COVER, 0);
+    title = label(panel, kMenuText, "工具", 16, 13, 150);
+    lv_label_set_long_mode(title, LV_LABEL_LONG_DOT);
+    lv_obj_set_height(title, 20);
+    tag = lv_label_create(panel);
+    lv_obj_set_style_text_font(tag, &nabo_mono_font_12, 0);
+    lv_obj_set_style_text_color(tag, lv_color_hex(kMenuBg), 0);
+    lv_obj_set_style_bg_color(tag, lv_color_hex(kMenuAccent), 0);
+    lv_obj_set_style_bg_opa(tag, LV_OPA_COVER, 0);
+    lv_obj_set_style_radius(tag, 3, 0);
+    lv_obj_set_style_pad_hor(tag, 5, 0);
+    lv_obj_set_style_pad_ver(tag, 2, 0);
+    lv_label_set_text(tag, "TOOLS");
+    lv_obj_align(tag, LV_ALIGN_TOP_RIGHT, -14, 15);
+    auto rule = box(panel, 16, 40, 208, 1, kMenuRule);
+    (void)rule;
+    box(panel, 16, 40, 28, 2, kMenuAccent);
+    card = box(panel, 8, 50, 224, 52, kMenuCard);
+    lv_obj_set_style_radius(card, 8, 0);
+    card_title = label(card, kMenuText, "", 12, 7, 200);
+    lv_label_set_long_mode(card_title, LV_LABEL_LONG_DOT);
+    lv_obj_set_height(card_title, 20);
+    card_sub = label(card, kMenuAccent, "", 12, 27, 200);
+    lv_label_set_long_mode(card_sub, LV_LABEL_LONG_DOT);
+    lv_obj_set_height(card_sub, 20);
+    lv_obj_add_flag(card, LV_OBJ_FLAG_HIDDEN);
+    selection = box(panel, 8, kRowTop - 5, 220, 28, kMenuSelect);
     lv_obj_set_style_radius(selection, 6, 0);
+    auto accent = box(selection, 0, 6, 3, 16, kMenuAccent);
+    lv_obj_set_style_radius(accent, 2, 0);
     for (int i = 0; i < 7; ++i) {
-        rows[i] = label(panel, 0xe7eaf0, "", 20, 53 + i * 30, 174);
-        values[i] = label(panel, 0x8bcbb8, "", 179, 53 + i * 30, 50);
+        icons[i] = label(panel, kMenuMuted, "", 18, kRowTop + 1 + i * kRowPitch, 20);
+        lv_obj_set_style_text_font(icons[i], &lv_font_montserrat_14, 0);
+        rows[i] = label(panel, kMenuText, "", 42, kRowTop + i * kRowPitch, 132);
+        lv_label_set_long_mode(rows[i], LV_LABEL_LONG_DOT);
+        lv_obj_set_height(rows[i], 20);
+        values[i] = label(panel, kMenuAccent, "", 150, kRowTop + i * kRowPitch, 72);
         lv_label_set_long_mode(values[i], LV_LABEL_LONG_DOT);
-        lv_obj_set_height(values[i], 22);
+        lv_obj_set_style_text_align(values[i], LV_TEXT_ALIGN_RIGHT, 0);
+        lv_obj_set_height(values[i], 20);
     }
-    body = label(panel, 0xcbd2df, "", 16, 56);
-    lv_obj_set_style_text_line_space(body, 2, 0);
-    footer = label(panel, 0x8798af, "上/下：选择  OK：进入\n长按上键：返回 NABO", 16, 274);
+    scroll_track = box(panel, 232, kRowTop - 4, 2, 7 * kRowPitch - 4, kMenuRule);
+    scroll_thumb = box(panel, 232, kRowTop - 4, 2, 30, kMenuAccent);
+    meter = box(panel, 16, 150, 208, 14, kMenuCard);
+    lv_obj_set_style_radius(meter, 7, 0);
+    meter_fill = box(meter, 0, 0, 0, 14, kMenuAccent);
+    lv_obj_set_style_radius(meter_fill, 7, 0);
+    lv_obj_add_flag(meter, LV_OBJ_FLAG_HIDDEN);
+    body = label(panel, kMenuText, "", 16, 56, 208);
+    lv_obj_set_style_text_line_space(body, 6, 0);
+    footer_rule = box(panel, 16, 276, 208, 1, kMenuRule);
+    footer = label(panel, kMenuMuted, "", 16, 282, 214);
+}
+static void free_panel() {
+    if (!panel)
+        return;
+    lv_obj_delete(panel);
+    panel = nullptr;
+}
+void nabo_apps_build(lv_obj_t* screen) {
+    if (app_screen)
+        return;
+    app_screen = screen;
     nabo_dice_ui_build(screen, &nabo_menu_font_16);
     nabo_muyu_ui_build(screen, &nabo_menu_font_16);
     jump_panel = lv_obj_create(screen);
@@ -730,6 +818,8 @@ static void change_page(NaboApp next) {
         nabo_muyu_ui_close();
     if (page == NABO_RADIO)
         nabo_radio_menu_close();
+    if (page == NABO_RHYTHM)
+        nabo_rhythm_ui_close();
     if (page == NABO_JUMP) {
         lv_obj_add_flag(jump_panel, LV_OBJ_FLAG_HIDDEN);
         if (jump_strip) {
@@ -742,11 +832,13 @@ static void change_page(NaboApp next) {
     key_group = -1;
     selected = next == NABO_TOOLS ? 1 : 0;
     key_selected = 0;
-    lv_obj_set_flag(
-        panel, LV_OBJ_FLAG_HIDDEN,
-        next == NABO_HOME || next == NABO_DICE || next == NABO_MUYU || next == NABO_JUMP);
-    if (next != NABO_HOME)
+    bool menu = !(next == NABO_HOME || next == NABO_DICE || next == NABO_MUYU ||
+                  next == NABO_JUMP || next == NABO_RHYTHM);
+    if (menu) {
+        build_panel();
         lv_obj_move_foreground(panel);
+    } else
+        free_panel();
     if (next == NABO_DICE && !nabo_dice_ui_open()) {
         snprintf(notice, sizeof(notice), "内存不足，请退出重试");
         nabo_apps_open(NABO_TOOLS);
@@ -755,6 +847,11 @@ static void change_page(NaboApp next) {
         nabo_muyu_ui_open();
     if (next == NABO_RADIO)
         nabo_radio_menu_open();
+    if (next == NABO_RHYTHM &&
+        !nabo_rhythm_ui_open(app_screen, &nabo_menu_font_16)) {
+        snprintf(notice, sizeof(notice), "内存不足，请退出重试");
+        nabo_apps_open(NABO_TOOLS);
+    }
     if (next == NABO_JUMP) {
         jump_strip = lv_draw_buf_create(240, 20, LV_COLOR_FORMAT_RGB565, LV_STRIDE_AUTO);
         if (jump_strip) {
@@ -772,36 +869,161 @@ static void change_page(NaboApp next) {
     }
     ESP_LOGI("NABO-Apps", "page=%d", static_cast<int>(next));
 }
-static void display_menu(const char* heading, const char* const* names, int count, int cursor) {
+// Change-only setters: every LVGL style write invalidates, and menus redraw
+// from nabo_apps_tick() 25 times a second.
+static void set_hidden(lv_obj_t* obj, bool hidden) {
+    if (lv_obj_has_flag(obj, LV_OBJ_FLAG_HIDDEN) != hidden)
+        lv_obj_set_flag(obj, LV_OBJ_FLAG_HIDDEN, hidden);
+}
+static void set_y(lv_obj_t* obj, int y) {
+    if (lv_obj_get_style_y(obj, LV_PART_MAIN) != y)
+        lv_obj_set_y(obj, y);
+}
+static void set_x(lv_obj_t* obj, int x) {
+    if (lv_obj_get_style_x(obj, LV_PART_MAIN) != x)
+        lv_obj_set_x(obj, x);
+}
+static void set_height(lv_obj_t* obj, int h) {
+    if (lv_obj_get_style_height(obj, LV_PART_MAIN) != h)
+        lv_obj_set_height(obj, h);
+}
+static void set_width(lv_obj_t* obj, int w) {
+    if (lv_obj_get_style_width(obj, LV_PART_MAIN) != w)
+        lv_obj_set_width(obj, w);
+}
+static void set_text_color(lv_obj_t* obj, uint32_t color) {
+    if (lv_color_to_u32(lv_obj_get_style_text_color(obj, LV_PART_MAIN)) !=
+        lv_color_to_u32(lv_color_hex(color)))
+        lv_obj_set_style_text_color(obj, lv_color_hex(color), 0);
+}
+static void set_bg_color(lv_obj_t* obj, uint32_t color) {
+    if (lv_color_to_u32(lv_obj_get_style_bg_color(obj, LV_PART_MAIN)) != lv_color_to_u32(lv_color_hex(color)))
+        lv_obj_set_style_bg_color(obj, lv_color_hex(color), 0);
+}
+static void show_header(const char* heading, const char* section) {
     show_text(title, heading);
-    lv_obj_add_flag(body, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_remove_flag(selection, LV_OBJ_FLAG_HIDDEN);
-    int first = cursor > 5 ? cursor - 5 : 0;
-    if (first + 7 > count)
-        first = std::max(0, count - 7);
-    lv_obj_set_pos(selection, 8, 48 + (cursor - first) * 30);
+    show_text(tag, section);
+}
+static int first_visible(int cursor, int count, int visible) {
+    int first = cursor > visible - 2 ? cursor - (visible - 2) : 0;
+    if (first + visible > count)
+        first = std::max(0, count - visible);
+    return first;
+}
+static void show_scroll(int first, int count, int visible, int top) {
+    bool scroll = count > visible;
+    set_hidden(scroll_track, !scroll);
+    set_hidden(scroll_thumb, !scroll);
+    if (!scroll)
+        return;
+    int track = visible * kRowPitch - 4;
+    int thumb = std::max(16, track * visible / count);
+    set_y(scroll_track, top - 4);
+    set_height(scroll_track, track);
+    set_height(scroll_thumb, thumb);
+    set_y(scroll_thumb, top - 4 + (track - thumb) * first / (count - visible));
+}
+// Rows with icons, right-aligned values, a highlighted cursor and a scrollbar.
+static void display_rows(const char* const* names, const char* const* row_icons, int count,
+                         int cursor, int top, int visible) {
+    set_hidden(body, true);
+    set_hidden(meter, true);
+    int first = cursor >= 0 ? first_visible(cursor, count, visible) : 0;
+    set_hidden(selection, cursor < 0);
+    if (cursor >= 0) {
+        set_y(selection, top - 5 + (cursor - first) * kRowPitch);
+        set_bg_color(selection, edit >= 0 ? kMenuEdit : kMenuSelect);
+    }
     for (int i = 0; i < 7; ++i) {
-        bool hide = first + i >= count;
-        lv_obj_set_flag(rows[i], LV_OBJ_FLAG_HIDDEN, hide);
-        lv_obj_set_flag(values[i], LV_OBJ_FLAG_HIDDEN, hide);
-        if (!hide) {
-            show_text(rows[i], names[first + i]);
-            show_text(values[i], "");
+        int item = first + i;
+        bool hide = i >= visible || item >= count;
+        set_hidden(rows[i], hide);
+        set_hidden(values[i], hide);
+        set_hidden(icons[i], hide || !row_icons);
+        if (hide)
+            continue;
+        int y = top + i * kRowPitch;
+        set_y(rows[i], y);
+        set_y(values[i], y);
+        set_x(values[i], cursor < 0 ? 92 : 150);
+        set_width(values[i], cursor < 0 ? 132 : 72);
+        set_y(icons[i], y + 1);
+        set_x(rows[i], row_icons ? 42 : 20);
+        show_text(rows[i], names[item]);
+        show_text(values[i], "");
+        set_text_color(rows[i], item == cursor || cursor < 0 ? kMenuText : 0xb4bcc8);
+        set_text_color(values[i], cursor < 0 ? kMenuText : kMenuAccent);
+        if (row_icons) {
+            show_text(icons[i], row_icons[item]);
+            set_text_color(icons[i], item == cursor ? kMenuAccent : kMenuMuted);
         }
     }
+    show_scroll(first, count, visible, top);
 }
-static void display_body(const char* heading, const char* text) {
-    show_text(title, heading);
+static void display_menu(const char* heading, const char* section, const char* const* names,
+                         int count, int cursor, const char* const* row_icons = nullptr) {
+    show_header(heading, section);
+    set_hidden(card, true);
+    display_rows(names, row_icons, count, cursor, kRowTop, 7);
+}
+static void display_body(const char* heading, const char* section, const char* text) {
+    show_header(heading, section);
     show_text(body, text);
-    lv_obj_remove_flag(body, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_add_flag(selection, LV_OBJ_FLAG_HIDDEN);
+    set_y(body, 56);
+    set_hidden(body, false);
+    set_hidden(card, true);
+    set_hidden(meter, true);
+    set_hidden(selection, true);
+    set_hidden(scroll_track, true);
+    set_hidden(scroll_thumb, true);
     for (int i = 0; i < 7; ++i) {
-        lv_obj_add_flag(rows[i], LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(values[i], LV_OBJ_FLAG_HIDDEN);
+        set_hidden(rows[i], true);
+        set_hidden(values[i], true);
+        set_hidden(icons[i], true);
     }
 }
+// Label/value rows without a cursor (device status, battery).
+static void display_info(const char* heading, const char* section, const char* const* names,
+                         const char* const* texts, int count) {
+    show_header(heading, section);
+    set_hidden(card, true);
+    display_rows(names, nullptr, count, -1, kRowTop, 7);
+    for (int i = 0; i < count && i < 7; ++i)
+        show_text(values[i], texts[i]);
+}
+// Renders the radio's "> item" text menus as a status card plus real rows.
+static void display_text_menu(const char* heading, const char* section, char* text) {
+    if (strncmp(text, "> ", 2) && !strstr(text, "\n> ")) {
+        display_body(heading, section, text);
+        return;
+    }
+    const char* header[2] = {"", ""};
+    const char* items[12];
+    int headers = 0, count = 0, cursor = 0;
+    for (char* line = text; line;) {
+        char* next = strchr(line, '\n');
+        if (next)
+            *next++ = 0;
+        bool item = (line[0] == '>' || line[0] == ' ') && line[1] == ' ';
+        if (item && count < 12) {
+            if (line[0] == '>')
+                cursor = count;
+            items[count++] = line + 2;
+        } else if (line[0] && !count && headers < 2)
+            header[headers++] = line;
+        line = next;
+    }
+    show_header(heading, section);
+    show_text(card_title, header[0]);
+    show_text(card_sub, header[1]);
+    set_hidden(card, false);
+    set_hidden(card_sub, !header[1][0]);
+    set_height(card, header[1][0] ? 52 : 34);
+    int top = header[1][0] ? 114 : 96;
+    display_rows(items, nullptr, count, cursor, top, header[1][0] ? 5 : 6);
+}
 void nabo_apps_tick() {
-    if (!panel)
+    if (!app_screen)
         return;
     int revision = request_revision.load();
     if (revision != shown_revision && ((wanted.load() == NABO_HOME && !ready) || ready.load())) {
@@ -816,6 +1038,10 @@ void nabo_apps_tick() {
     }
     if (page == NABO_MUYU) {
         nabo_muyu_ui_tick();
+        return;
+    }
+    if (page == NABO_RHYTHM) {
+        nabo_rhythm_ui_tick();
         return;
     }
     if (page == NABO_JUMP) {
@@ -874,14 +1100,13 @@ void nabo_apps_tick() {
         return;
     }
     char text[640];
+    const char* hint = "OK 进入 · 双击上 返回\n长按上键 回到 NABO";
     if (page == NABO_TOOLS)
-        display_menu("NABO 工具", tools, 7, selected);
+        display_menu("NABO 工具", "TOOLS", tools, kToolCount, selected, tool_icons);
     else if (page == NABO_SETTINGS) {
-        display_menu(edit >= 0 ? "调整设置  OK：保存" : "声音、显示与网络", settings_names,
-                     ST_COUNT, settings_selected);
-        int first = settings_selected > 5 ? settings_selected - 5 : 0;
-        if (first + 7 > ST_COUNT)
-            first = ST_COUNT - 7;
+        display_menu(edit >= 0 ? "调整设置" : "声音、显示与网络", edit >= 0 ? "EDIT" : "SETTINGS",
+                     settings_names, ST_COUNT, settings_selected, settings_icons);
+        int first = first_visible(settings_selected, ST_COUNT, 7);
         for (int i = 0; i < 7 && first + i < ST_COUNT; ++i) {
             int item = first + i;
             text[0] = 0;
@@ -890,19 +1115,32 @@ void nabo_apps_tick() {
             else if (item == ST_BRIGHTNESS)
                 snprintf(text, sizeof(text), "%d%%", brightness.load());
             else if (item == ST_MIC)
-                snprintf(text, sizeof(text), "%ddB", mic_gain.load());
-            else if (item == ST_SLEEP)
-                snprintf(text, sizeof(text), sleep_seconds ? "%ds" : "不休眠",
-                         sleep_seconds.load());
-            else if (item == ST_SPEAKER)
+                snprintf(text, sizeof(text), "%d dB", mic_gain.load());
+            else if (item == ST_SLEEP) {
+                int seconds = sleep_seconds.load();
+                if (!seconds)
+                    snprintf(text, sizeof(text), "不休眠");
+                else if (seconds % 60)
+                    snprintf(text, sizeof(text), "%d 秒", seconds);
+                else
+                    snprintf(text, sizeof(text), "%d 分钟", seconds / 60);
+            } else if (item == ST_SPEAKER)
                 snprintf(text, sizeof(text), speaker ? "开" : "关");
             else if (item == ST_WIFI)
                 snprintf(text, sizeof(text), wifi_on ? "开" : "关");
-            show_text(values[i], text);
+            if (item == edit && text[0]) {
+                char editing[48];
+                snprintf(editing, sizeof(editing), "< %.32s >", text);
+                show_text(values[i], editing);
+            } else
+                show_text(values[i], text);
         }
+        if (edit >= 0)
+            hint = "上/下 调整数值\nOK 保存 · 双击上 结束";
     } else if (page == NABO_RADIO) {
         nabo_radio_menu_text(text, sizeof(text));
-        display_body("网络电台", text);
+        display_text_menu("网络电台", "RADIO", text);
+        hint = "上/下 选择 · OK 确定\n双击上 上一级";
     } else if (page == NABO_KEYS) {
         if (key_group < 0) {
             const char* groups[7] = {"返回",
@@ -912,7 +1150,7 @@ void nabo_apps_tick() {
                                      nabo_keys_group_name(3),
                                      nabo_keys_group_name(4),
                                      nabo_keys_group_name(5)};
-            display_menu("电脑快捷键", groups, 7, key_selected);
+            display_menu("电脑快捷键", "KEYS", groups, 7, key_selected);
         } else if (key_group == 6) {
             char dictate[32], translate[32], ask[32];
             nabo_key_packet_t packet;
@@ -922,25 +1160,25 @@ void nabo_apps_tick() {
             nabo_keys_chord(&packet, nabo_keys_os(), translate, sizeof(translate));
             nabo_keys_resolve(NABO_KEY_ASK, &packet);
             nabo_keys_chord(&packet, nabo_keys_os(), ask, sizeof(ask));
-            snprintf(text, sizeof(text),
-                     "语音输入：%s\n翻译：%s\n询问：%s\n\n电脑需先安装并设置\n对应软件的快捷键",
-                     dictate, translate, ask);
-            display_body("按键说明", text);
-            show_text(footer, "OK：返回连接设置");
+            const char* names[] = {"语音输入", "翻译", "询问"};
+            const char* chords[] = {dictate, translate, ask};
+            display_info("按键说明", "HELP", names, chords, 3);
+            show_text(body, "电脑需先安装并设置\n对应软件的快捷键");
+            set_y(body, kRowTop + 3 * kRowPitch + 12);
+            set_hidden(body, false);
+            show_text(footer, "OK 返回连接设置");
             return;
         } else if (key_group == 5) {
             const char* connect[] = {"返回", "电脑系统", "重新连接", "按键说明"};
-            display_menu("连接与按键", connect, 4, key_selected);
-            show_text(values[1], nabo_keys_os() == NABO_KEYS_WINDOWS ? "Win" : "Mac");
+            display_menu("连接与按键", "KEYS", connect, 4, key_selected);
+            show_text(values[1], nabo_keys_os() == NABO_KEYS_WINDOWS ? "Windows" : "Mac");
         } else {
             const char* names[9] = {"返回"};
             int count = nabo_keys_group_count(key_group);
             for (int i = 0; i < count; ++i)
                 names[i + 1] = nabo_key_name(nabo_keys_group_item(key_group, i));
-            display_menu(nabo_keys_group_name(key_group), names, count + 1, key_selected);
-            int first = key_selected > 5 ? key_selected - 5 : 0;
-            if (first + 7 > count + 1)
-                first = std::max(0, count - 6);
+            display_menu(nabo_keys_group_name(key_group), "KEYS", names, count + 1, key_selected);
+            int first = first_visible(key_selected, count + 1, 7);
             for (int i = 0; i < 7 && first + i < count + 1; ++i) {
                 if (first + i == 0)
                     continue;
@@ -963,27 +1201,41 @@ void nabo_apps_tick() {
         return;
     } else if (page == NABO_STATUS) {
         auto& wifi = WifiManager::GetInstance();
-        snprintf(text, sizeof(text),
-                 "小智 / NABO\nWi-Fi：%s\n网络：%s\nIP：%s\n可用内存：%u KB\n版本：2.5.0 NABO Apps",
-                 wifi.IsConnected() ? "已连接" : "未连接", wifi.GetSsid().c_str(),
-                 wifi.GetIpAddress().c_str(), (unsigned)(esp_get_free_heap_size() / 1024));
-        display_body("设备状态", text);
-    } else if (page == NABO_BATTERY) {
+        char memory[24], ip[24], ssid[40];
+        snprintf(memory, sizeof(memory), "%u KB", (unsigned)(esp_get_free_heap_size() / 1024));
+        snprintf(ip, sizeof(ip), "%s", wifi.IsConnected() ? wifi.GetIpAddress().c_str() : "-");
+        snprintf(ssid, sizeof(ssid), "%s", wifi.IsConnected() ? wifi.GetSsid().c_str() : "-");
+        char power[16] = "-";
         if (battery.load() >= 0)
-            snprintf(text, sizeof(text), "电池：%d%%\n\n电量来自 CW2017\n按 OK 返回",
-                     battery.load());
-        else
-            snprintf(text, sizeof(text), "暂时无法读取电量\n\n按 OK 返回");
-        display_body("电池信息", text);
+            snprintf(power, sizeof(power), "%d%%", battery.load());
+        const char* names[] = {"Wi-Fi", "网络", "IP", "电量", "可用内存", "固件"};
+        const char* texts[] = {wifi.IsConnected() ? "已连接" : "未连接", ssid, ip, power, memory,
+                               "NABO 1.1"};
+        display_info("设备状态", "STATUS", names, texts, 6);
+        hint = "OK 返回 · 双击上 上一级";
+    } else if (page == NABO_BATTERY) {
+        int pct = battery.load();
+        char level[16] = "无法读取";
+        if (pct >= 0)
+            snprintf(level, sizeof(level), "%d%%", pct);
+        const char* names[] = {"当前电量", "电量芯片"};
+        const char* texts[] = {level, "CW2017"};
+        display_info("电池信息", "BATTERY", names, texts, 2);
+        set_hidden(meter, pct < 0);
+        if (pct >= 0) {
+            set_y(meter, kRowTop + 2 * kRowPitch + 10);
+            set_width(meter_fill, std::max(14, 208 * std::clamp(pct, 0, 100) / 100));
+            set_bg_color(meter_fill, pct <= 20 ? 0xff5a4e : pct <= 50 ? 0xffc21a : kMenuAccent);
+        }
+        hint = "OK 返回 · 双击上 上一级";
     } else if (page == NABO_WIFI) {
-        snprintf(text, sizeof(text), "手机连接热点\n%s\n\n浏览器打开\n%s\n\n配网完成后按 OK 返回",
+        snprintf(text, sizeof(text), "1. 手机连接热点\n    %s\n\n2. 浏览器打开\n    %s\n\n3. 配网完成后按 OK 返回",
                  WifiManager::GetInstance().GetApSsid().c_str(),
                  WifiManager::GetInstance().GetApWebUrl().c_str());
-        display_body("添加网络", text);
+        display_body("添加网络", "WI-FI", text);
+        hint = "OK 返回设置";
     }
-    show_text(footer, notice[0]   ? notice
-                      : edit >= 0 ? "上/下：调整  OK：保存"
-                                  : "上/下：选择  OK：进入\n长按上键：返回 NABO");
+    show_text(footer, notice[0] ? notice : hint);
 }
 static void adjust(int item, int direction) {
     if (item == ST_VOLUME)
@@ -1008,6 +1260,8 @@ static void return_one_level() {
         return;
     bool settled = ready.load() && current == page;
     if (settled && current == NABO_RADIO && nabo_radio_menu_key(MUSE_MENU_LEFT))
+        return;
+    if (settled && current == NABO_RHYTHM && nabo_rhythm_ui_key(MUSE_MENU_LEFT))
         return;
     if (settled && current == NABO_KEYS && key_group >= 0) {
         if (key_group == 6) {
@@ -1073,6 +1327,11 @@ bool nabo_apps_key(muse_menu_key_t key) {
             nabo_apps_open(NABO_TOOLS);
         return true;
     }
+    if (page == NABO_RHYTHM) {
+        if (!nabo_rhythm_ui_key(key))
+            nabo_apps_open(NABO_TOOLS);
+        return true;
+    }
     if (page == NABO_JUMP) {
         if (key == MUSE_MENU_UP)
             nabo_apps_open(NABO_TOOLS);
@@ -1084,7 +1343,7 @@ bool nabo_apps_key(muse_menu_key_t key) {
     }
     if (page == NABO_TOOLS) {
         if (key == MUSE_MENU_UP || key == MUSE_MENU_DOWN)
-            selected = (selected + (key == MUSE_MENU_UP ? 6 : 1)) % 7;
+            selected = (selected + (key == MUSE_MENU_UP ? kToolCount - 1 : 1)) % kToolCount;
         else if (key == MUSE_MENU_SELECT)
             nabo_apps_open(tool_apps[selected]);
     } else if (page == NABO_SETTINGS) {
@@ -1162,12 +1421,20 @@ bool nabo_apps_key(muse_menu_key_t key) {
     }
     return true;
 }
+void nabo_apps_down_pressed(uint32_t event_ms) {
+    if (page == NABO_RHYTHM && ready.load() && wanted.load() == NABO_RHYTHM)
+        nabo_rhythm_ui_press(1, event_ms);
+}
 void nabo_apps_charge(bool pressed, uint32_t event_ms) {
     last_input = esp_timer_get_time();
-    if (!nabo_apps_is_jump())
-        return;
     if (!event_ms)
         event_ms = esp_timer_get_time() / 1000;
+    if (pressed && page == NABO_RHYTHM && ready.load() && wanted.load() == NABO_RHYTHM) {
+        nabo_rhythm_ui_press(0, event_ms);
+        return;
+    }
+    if (!nabo_apps_is_jump())
+        return;
     if (pressed) {
         nabo_jump_press(&jump_game, event_ms);
         jump_round_over = jump_game.phase == JUMP_OVER;
@@ -1188,7 +1455,8 @@ void nabo_apps_register_tools() {
     server.AddTool(
         "self.apps.open",
         "打开工牌内置程序。app "
-        "可用：跳一跳(jump)、摇骰子(dice)、功德木鱼(muyu)、网络电台(radio)、电脑快捷键(computer)"
+        "可用：跳一跳(jump)、节奏回声(rhythm)、摇骰子(dice)、功德木鱼(muyu)、网络电台(radio)、"
+        "电脑快捷键(computer)"
         "、设置(settings)、工具(tools)。进入程序会暂停语音对话；双击上键返回上一级，长按上键回到 "
         "NABO "
         "恢复小智。",
@@ -1206,13 +1474,15 @@ void nabo_apps_register_tools() {
                 app = NABO_RADIO;
             else if (name == "computer" || name == "电脑控制" || name == "电脑快捷键")
                 app = NABO_KEYS;
+            else if (name == "rhythm" || name == "节奏回声" || name == "节奏游戏")
+                app = NABO_RHYTHM;
             else if (name == "settings" || name == "设置")
                 app = NABO_SETTINGS;
             else if (name == "tools" || name == "工具")
                 app = NABO_TOOLS;
             else
                 return std::unexpected(
-                    "Unknown app. Use jump, dice, muyu, radio, computer, settings or tools.");
+                    "Unknown app. Use jump, rhythm, dice, muyu, radio, computer, settings or tools.");
             nabo_apps_open(app, 900);
             return std::string("已安排打开 ") + name + "。程序中使用实体按键；长按上键返回小智。";
         });
@@ -1228,6 +1498,7 @@ bool nabo_apps_voice_command(const char* transcript) {
                      : !strcmp(name, "radio")    ? NABO_RADIO
                      : !strcmp(name, "jump")     ? NABO_JUMP
                      : !strcmp(name, "computer") ? NABO_KEYS
+                     : !strcmp(name, "rhythm")   ? NABO_RHYTHM
                      : !strcmp(name, "settings") ? NABO_SETTINGS
                                                  : NABO_TOOLS;
     nabo_apps_open(target);

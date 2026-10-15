@@ -1,0 +1,37 @@
+{
+  "converter": "lv_font_conv 1.5.3",
+  "fonts": {
+    "nabo_menu_font_16": {
+      "source": "LXGWWenKai-Regular.ttf",
+      "source_sha256": "39ad71264b588165b469e35e6afb162a378dacd1f95348160240ba9038ac3009",
+      "pixels": 16,
+      "bpp": 2,
+      "symbols": "·、。一上下不与东两个中串临丹义之乐乡书于交亮人他令件休会位低住体作你使保信值做停先克入全八关其具内再写农冲准几出击分切列到制刻前剪力功加动包区医单南历厦去双反发取受变口句可台合同后吧听启呼命和咖咸唱啡器四回固国图在地址城域增声处备复多大天央头奏始威媒子字存宁安完定宜实客宣密对小尚就尾局屏山岛州工巩差已市帮幕并广庄床序应度建开当录待很德徽心快态总恢息想感戏成我或截房手打扬找拍择按换捷排接控提插搜摇撤播操收放效数敲整文断新方旁旅无时昌明春是显智暂曲更替望木未末本机村束条来松枣查标栏桐次止正此每民江池沂沙泉法洛津活济浏浩海消淮混添游满澄点热片版牌牙牡特状玩珠班生用电的益盘目眠着知码确示福秒程稳窗站符等签类粘系索累级纪线经结给络统绪续综缓编网置美翻能脑自色艺节芯花范蓄蓝藏行表装要览角计认议设译试话询语说请读调豹贴起足跟跳轮软辑输辽过运返进远连退送选通速遍部都配重量金钟销锁错锡键长门闭问闻阳降院陵需青静靶音顺颗风骰高鱼麦黄黑鼎！（），：；？",
+      "output_sha256": "e0a629c07e64db8d0da7071278684c4b2fe04a05aff22539103e0a7256a80d9f"
+    },
+    "nabo_poster_font_28": {
+      "source": "ArchivoBlack-Regular.ttf",
+      "source_sha256": "dd9a89a019b4849f66ab75455fe7bdf931311042cbb0f0f97acc061539703180",
+      "pixels": 28,
+      "bpp": 4,
+      "symbols": " !%&-./0123456789:?ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+      "output_sha256": "ce7ed1ecd5eedeb1df4b673470a65ed9816e5ac3bdff3d849d55e58dd897d12d"
+    },
+    "nabo_poster_font_48": {
+      "source": "ArchivoBlack-Regular.ttf",
+      "source_sha256": "dd9a89a019b4849f66ab75455fe7bdf931311042cbb0f0f97acc061539703180",
+      "pixels": 48,
+      "bpp": 4,
+      "symbols": "%0123456789ABCDS!",
+      "output_sha256": "e16aa4b771a2d060b71862c260b954b3fafc420ed3638401264df0dbbaa9c590"
+    },
+    "nabo_mono_font_12": {
+      "source": "SpaceMono-Bold.ttf",
+      "source_sha256": "405e73d41afb7e5906efce206a326af5c956f38e255f35421c260e861e599c59",
+      "pixels": 12,
+      "bpp": 4,
+      "symbols": "ASCII",
+      "output_sha256": "264281c5b9969c87547e30136fdc071fb3a897a58d40d7ed8173712c307d01bf"
+    }
+  }
+}

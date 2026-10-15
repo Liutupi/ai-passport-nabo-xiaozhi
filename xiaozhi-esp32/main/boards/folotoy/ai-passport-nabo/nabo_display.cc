@@ -254,10 +254,12 @@ void NaboDisplay::Tick() {
     nabo_apps_tick();
     if (nabo_apps_is_jump())
         SetGameDrawBuffer(true);
+    // Jump keeps its measured 16 ms cadence; the rhythm playhead needs 50 Hz.
+    int period = nabo_apps_is_jump() ? 16 : nabo_apps_is_fast() ? 20 : 0;
     if (animation_)
-        lv_timer_set_period(animation_, nabo_apps_is_jump() ? 16 : 40);
+        lv_timer_set_period(animation_, period ? period : 40);
     if (display_)
-        lv_timer_set_period(lv_display_get_refr_timer(display_), nabo_apps_is_jump() ? 16 : 33);
+        lv_timer_set_period(lv_display_get_refr_timer(display_), period ? period : 33);
     if (emoji_box_)
         lv_obj_set_flag(emoji_box_, LV_OBJ_FLAG_HIDDEN,
                         nabo_apps_active() && Application::GetInstance().IsLocalAppActive());

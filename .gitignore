@@ -16,3 +16,6 @@ xiaozhi-esp32/sdkconfig.old
 xiaozhi-esp32/main/assets/lang_config.h
 xiaozhi-esp32/main/mmap_generate_*.h
 xiaozhi-esp32/releases/
+
+# macOS AppleDouble files on non-APFS volumes
+._*
