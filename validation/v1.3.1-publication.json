@@ -1,0 +1,33 @@
+{
+  "release_version": "1.3.1",
+  "release_url": "https://github.com/Liutupi/ai-passport-nabo-xiaozhi/releases/tag/v1.3.1",
+  "published_at": "2026-10-15T16:58:42Z",
+  "latest_release": true,
+  "anonymous_downloads": "PASS: all four public assets",
+  "all_asset_and_zip_member_checksums": "PASS",
+  "exact_device_accepted_app": true,
+  "private_paths_in_zip": false,
+  "documentation_and_licenses_included": true,
+  "zip_members": 95,
+  "app_sha256": "206a824014e1b04b4e02b64cad2f462d8610a620dd721fe3596ca8d59a701fbf",
+  "source_tag_commit": "84554c13ea2ac3d617d77ec4c63e8dee57d11416",
+  "application_source_commit": "f52d82f60dfe38be240a690a764cd0823f761da6",
+  "assets": {
+    "ai-passport-nabo-xiaozhi-v1.3.1.zip": {
+      "bytes": 4117505,
+      "sha256": "3232244d31bc9ad0ce2b2f8fe58546381989bf4de3b93b26e49a7c55f0059e2e"
+    },
+    "xiaozhi.bin": {
+      "bytes": 4006288,
+      "sha256": "206a824014e1b04b4e02b64cad2f462d8610a620dd721fe3596ca8d59a701fbf"
+    },
+    "manifest.json": {
+      "bytes": 1230,
+      "sha256": "f9a20f8ef3ef5eef46209b56f1be4d081496f57db898546ffa01ad1ea08d0c52"
+    },
+    "SHA256SUMS.txt": {
+      "bytes": 263,
+      "sha256": "f72c3efc3ab58a47343b82fb52a545bf101e54aa22296f07285907689147c03f"
+    }
+  }
+}
